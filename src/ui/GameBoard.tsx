@@ -48,7 +48,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   const [currentTurnRolls, setCurrentTurnRolls] = useState<Dice[]>([]);
   const [showHelp, setShowHelp] = useState(false);
 
-  const prevTurnRef = useRef<{ playerIndex: number; keptDice: Dice; turnScore: number } | null>(null);
+  const prevTurnRef = useRef<{ playerIndex: number; keptDice: Dice; turnScore: number; playerScore: number } | null>(null);
   const prevPlayerIndexRef = useRef<number>(gameState.currentPlayerIndex);
 
   const currentPlayer = getCurrentPlayer(gameState);
@@ -66,23 +66,29 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   useEffect(() => {
     const prev = prevTurnRef.current;
     if (prev !== null && prev.playerIndex !== gameState.currentPlayerIndex) {
+      // Turn just ended - determine if it was a bust or bank by checking score change
       const prevPlayer = gameState.players[prev.playerIndex];
-      const busted = prev.turnScore === 0;
+      const scoreGained = prevPlayer.score - prev.playerScore;
+      // If score didn't increase and they had kept dice, they busted
+      const busted = scoreGained === 0 && prev.keptDice.length > 0;
       setTurnHistory(history => [
         ...history,
         {
           playerName: prevPlayer.name,
           dice: prev.keptDice,
-          score: prev.turnScore,
+          score: scoreGained > 0 ? scoreGained : 0,
           busted,
           isAI: prevPlayer.isAI,
         },
       ]);
     }
+    // Track current player's state including their starting score
+    const currentPlayerObj = gameState.players[gameState.currentPlayerIndex];
     prevTurnRef.current = {
       playerIndex: gameState.currentPlayerIndex,
       keptDice: [...turn.keptDice],
       turnScore: turn.turnScore,
+      playerScore: currentPlayerObj?.score || 0,
     };
   }, [gameState.currentPlayerIndex, gameState.players, turn.keptDice, turn.turnScore]);
 
@@ -137,13 +143,17 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
       isOnBoard: player.isOnBoard,
     });
 
-    const thinkDelay = currentTurn.phase === TurnPhase.ROLLING || currentTurn.phase === TurnPhase.STEAL_REQUIRED ? 800 : 600;
-    aiNextActionTimeRef.current = now + thinkDelay + 500;
+    // Longer delays to simulate human thinking - varies by action type
+    const baseThinkDelay = currentTurn.phase === TurnPhase.ROLLING || currentTurn.phase === TurnPhase.STEAL_REQUIRED ? 1200 : 1000;
+    // Add some randomness to feel more natural (±300ms)
+    const thinkDelay = baseThinkDelay + Math.floor(Math.random() * 600) - 300;
+    aiNextActionTimeRef.current = now + thinkDelay + 800;
     setIsAIActing(true);
 
     const thinkTimeout = setTimeout(() => {
       if (decision.action === 'ROLL') {
         setIsRolling(true);
+        // Delay before showing roll results (simulates watching dice)
         setTimeout(() => {
           const state = gameStateRef.current;
           const aiPlayer = getCurrentPlayer(state);
@@ -159,12 +169,13 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
           if (isBust) {
             gameLogger.bust(aiPlayer.name, true, dice, turnScoreBefore);
+            // Longer pause after bust so human can see what happened
             setTimeout(() => {
               gameLogger.turnEnd(aiPlayer.name, true, 0, aiPlayer.score, aiPlayer.isOnBoard, aiPlayer.isOnBoard);
               onGameStateChangeRef.current(gameReducer(newState, { type: 'END_TURN' }));
-            }, 1500);
+            }, 2000);
           }
-        }, 500);
+        }, 800);
       } else if (decision.action === 'KEEP' && decision.dice) {
         const state = gameStateRef.current;
         const aiPlayer = getCurrentPlayer(state);
@@ -174,7 +185,8 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
         gameLogger.keep(aiPlayer.name, true, decision.dice, keepScore, newState.turn.turnScore, newState.turn.diceRemaining, isHotDice);
 
-        const keepDelay = isHotDice ? 1500 : 1000;
+        // Longer delay after keeping to let human see what AI selected
+        const keepDelay = isHotDice ? 2500 : 1800;
         aiNextActionTimeRef.current = Date.now() + keepDelay;
         onGameStateChangeRef.current(newState);
         setIsAIActing(false);
@@ -186,18 +198,24 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         const wasOnBoard = aiPlayer.isOnBoard;
         const isNowOnBoard = wasOnBoard || newTotalScore >= ENTRY_THRESHOLD;
 
-        let newState = gameReducer(state, { type: 'BANK' });
         gameLogger.bank(aiPlayer.name, true, state.turn.turnScore, newTotalScore, state.turn.diceRemaining, createdCarryover);
         gameLogger.turnEnd(aiPlayer.name, true, state.turn.turnScore, newTotalScore, wasOnBoard, isNowOnBoard);
 
-        newState = gameReducer(newState, { type: 'END_TURN' });
-        onGameStateChangeRef.current(newState);
-        setIsAIActing(false);
+        // Delay before completing bank so human can see the decision
+        setTimeout(() => {
+          let newState = gameReducer(state, { type: 'BANK' });
+          newState = gameReducer(newState, { type: 'END_TURN' });
+          onGameStateChangeRef.current(newState);
+          setIsAIActing(false);
+        }, 1200);
       } else if (decision.action === 'DECLINE_CARRYOVER') {
-        const state = gameStateRef.current;
-        const newState = gameReducer(state, { type: 'DECLINE_CARRYOVER' });
-        onGameStateChangeRef.current(newState);
-        setIsAIActing(false);
+        // Short pause before declining carryover
+        setTimeout(() => {
+          const state = gameStateRef.current;
+          const newState = gameReducer(state, { type: 'DECLINE_CARRYOVER' });
+          onGameStateChangeRef.current(newState);
+          setIsAIActing(false);
+        }, 800);
       } else {
         setIsAIActing(false);
       }
