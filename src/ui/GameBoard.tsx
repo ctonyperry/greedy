@@ -1,15 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DiceRoll, TurnHistory, TurnHistoryEntry } from './DiceRoll.js';
-import { ScoreDisplay } from './ScoreDisplay.js';
-import { PlayerList } from './PlayerList.js';
-import { ActionButtons } from './ActionButtons.js';
+import { GameTheater } from './GameTheater.js';
+import { PlayerBar } from './PlayerBar.js';
+import { TurnHistory, TurnHistoryEntry } from './DiceRoll.js';
 import { HelpPanel } from './HelpPanel.js';
 import { TurnPhase } from '../types/index.js';
 import type { GameState, Dice, DieValue } from '../types/index.js';
 import { gameReducer, getCurrentPlayer } from '../engine/game.js';
 import { canBank as checkCanBank } from '../engine/turn.js';
-import { validateKeep } from '../engine/validation.js';
+import { validateKeep, getSelectableIndices } from '../engine/validation.js';
 import { scoreSelection } from '../engine/scoring.js';
 import { makeAIDecision, AI_STRATEGIES } from '../ai/strategies.js';
 import { ENTRY_THRESHOLD } from '../engine/constants.js';
@@ -28,15 +27,14 @@ function rollDice(count: number): Dice {
   );
 }
 
-const EMPTY_DICE: Dice = [];
-
 /**
- * GameBoard - Main game interface with responsive layout
+ * GameBoard - Main game interface with unified theater layout
  *
- * Layout strategy:
- * - Mobile (< 768px): Single column, stacked sections
- * - Tablet (768-1023px): Two columns with sidebar
- * - Desktop (1024px+): Comfortable spacing, optional turn history
+ * Design Philosophy:
+ * - Single "Game Theater" for all turn interactions
+ * - Phase-adaptive content guides the player
+ * - Compact player bar at bottom maintains awareness
+ * - Turn history optional, shown on larger screens
  */
 export function GameBoard({ gameState, onGameStateChange, showHints = false }: GameBoardProps) {
   const { t } = useI18n();
@@ -66,10 +64,8 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   useEffect(() => {
     const prev = prevTurnRef.current;
     if (prev !== null && prev.playerIndex !== gameState.currentPlayerIndex) {
-      // Turn just ended - determine if it was a bust or bank by checking score change
       const prevPlayer = gameState.players[prev.playerIndex];
       const scoreGained = prevPlayer.score - prev.playerScore;
-      // If score didn't increase and they had kept dice, they busted
       const busted = scoreGained === 0 && prev.keptDice.length > 0;
       setTurnHistory(history => [
         ...history,
@@ -82,7 +78,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         },
       ]);
     }
-    // Track current player's state including their starting score
     const currentPlayerObj = gameState.players[gameState.currentPlayerIndex];
     prevTurnRef.current = {
       playerIndex: gameState.currentPlayerIndex,
@@ -92,10 +87,11 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     };
   }, [gameState.currentPlayerIndex, gameState.players, turn.keptDice, turn.turnScore]);
 
-  // Reset rolls when player changes
+  // Reset selection when player changes
   useEffect(() => {
     if (prevPlayerIndexRef.current !== gameState.currentPlayerIndex) {
       setCurrentTurnRolls([]);
+      setSelectedIndices([]);
       prevPlayerIndexRef.current = gameState.currentPlayerIndex;
     }
   }, [gameState.currentPlayerIndex]);
@@ -113,6 +109,16 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     }
     prevKeptDiceLengthRef.current = currentLength;
   }, [turn.keptDice]);
+
+  // Reset selection when dice change (new roll)
+  const prevDiceRef = useRef<string>('');
+  useEffect(() => {
+    const diceKey = JSON.stringify(turn.currentRoll);
+    if (diceKey !== prevDiceRef.current) {
+      prevDiceRef.current = diceKey;
+      setSelectedIndices([]);
+    }
+  }, [turn.currentRoll]);
 
   // AI action timing
   const aiNextActionTimeRef = useRef(0);
@@ -143,9 +149,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
       isOnBoard: player.isOnBoard,
     });
 
-    // Longer delays to simulate human thinking - varies by action type
     const baseThinkDelay = currentTurn.phase === TurnPhase.ROLLING || currentTurn.phase === TurnPhase.STEAL_REQUIRED ? 1200 : 1000;
-    // Add some randomness to feel more natural (±300ms)
     const thinkDelay = baseThinkDelay + Math.floor(Math.random() * 600) - 300;
     aiNextActionTimeRef.current = now + thinkDelay + 800;
     setIsAIActing(true);
@@ -153,7 +157,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     const thinkTimeout = setTimeout(() => {
       if (decision.action === 'ROLL') {
         setIsRolling(true);
-        // Delay before showing roll results (simulates watching dice)
         setTimeout(() => {
           const state = gameStateRef.current;
           const aiPlayer = getCurrentPlayer(state);
@@ -169,7 +172,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
           if (isBust) {
             gameLogger.bust(aiPlayer.name, true, dice, turnScoreBefore);
-            // Longer pause after bust so human can see what happened
             setTimeout(() => {
               gameLogger.turnEnd(aiPlayer.name, true, 0, aiPlayer.score, aiPlayer.isOnBoard, aiPlayer.isOnBoard);
               onGameStateChangeRef.current(gameReducer(newState, { type: 'END_TURN' }));
@@ -185,7 +187,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
         gameLogger.keep(aiPlayer.name, true, decision.dice, keepScore, newState.turn.turnScore, newState.turn.diceRemaining, isHotDice);
 
-        // Longer delay after keeping to let human see what AI selected
         const keepDelay = isHotDice ? 2500 : 1800;
         aiNextActionTimeRef.current = Date.now() + keepDelay;
         onGameStateChangeRef.current(newState);
@@ -201,7 +202,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         gameLogger.bank(aiPlayer.name, true, state.turn.turnScore, newTotalScore, state.turn.diceRemaining, createdCarryover);
         gameLogger.turnEnd(aiPlayer.name, true, state.turn.turnScore, newTotalScore, wasOnBoard, isNowOnBoard);
 
-        // Delay before completing bank so human can see the decision
         setTimeout(() => {
           let newState = gameReducer(state, { type: 'BANK' });
           newState = gameReducer(newState, { type: 'END_TURN' });
@@ -209,7 +209,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
           setIsAIActing(false);
         }, 1200);
       } else if (decision.action === 'DECLINE_CARRYOVER') {
-        // Short pause before declining carryover
         setTimeout(() => {
           const state = gameStateRef.current;
           const newState = gameReducer(state, { type: 'DECLINE_CARRYOVER' });
@@ -224,6 +223,40 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     return () => clearTimeout(thinkTimeout);
   }, [isAITurn, turn.phase, isRolling, isAIActing, aiTrigger, gameState.isGameOver, gameState.currentPlayerIndex]);
 
+  // Calculate selectable indices
+  const selectableIndices = useMemo(() => {
+    if (isAITurn || isRolling || !turn.currentRoll || turn.currentRoll.length === 0) {
+      return new Set<number>();
+    }
+    return getSelectableIndices(turn.currentRoll, selectedIndices);
+  }, [turn.currentRoll, selectedIndices, isAITurn, isRolling]);
+
+  // Calculate scoring indices for hints
+  const scoringIndices = useMemo(() => {
+    if (!showHints || isAITurn || isRolling || !turn.currentRoll || turn.currentRoll.length === 0) {
+      return new Set<number>();
+    }
+    const scoring = new Set<number>();
+    turn.currentRoll.forEach((value, index) => {
+      if (value === 1 || value === 5) {
+        scoring.add(index);
+      }
+    });
+    // Check for triples
+    const counts = new Map<DieValue, number[]>();
+    turn.currentRoll.forEach((value, index) => {
+      const indices = counts.get(value) || [];
+      indices.push(index);
+      counts.set(value, indices);
+    });
+    counts.forEach((indices) => {
+      if (indices.length >= 3) {
+        indices.forEach(i => scoring.add(i));
+      }
+    });
+    return scoring;
+  }, [turn.currentRoll, showHints, isAITurn, isRolling]);
+
   const hasValidSelection = selectedIndices.length > 0 && turn.currentRoll !== null;
   const canRoll = !isRolling && (
     turn.phase === TurnPhase.ROLLING ||
@@ -233,6 +266,19 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   );
 
   const canBankNow = turn.phase === TurnPhase.DECIDING && checkCanBank(turn, currentPlayer.isOnBoard);
+
+  const handleDieClick = useCallback((index: number) => {
+    if (isAITurn || isRolling) return;
+    if (!selectableIndices.has(index)) return;
+
+    setSelectedIndices(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  }, [isAITurn, isRolling, selectableIndices]);
 
   const handleRoll = useCallback(() => {
     if (!canRoll) return;
@@ -352,44 +398,19 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   const selectedDice = turn.currentRoll
     ? selectedIndices.map((i) => turn.currentRoll![i])
     : [];
-  const selectedScore = selectedDice.length > 0 ? scoreSelection(selectedDice).score : 0;
+  const selectionScore = selectedDice.length > 0 ? scoreSelection(selectedDice).score : 0;
 
   const wouldBankBeValid = (() => {
-    if (selectedScore === 0) return false;
-    const totalAfterKeep = turn.turnScore + selectedScore;
+    if (selectionScore === 0) return false;
+    const totalAfterKeep = turn.turnScore + selectionScore;
     if (currentPlayer.isOnBoard) return true;
     const ownScore = totalAfterKeep - turn.carryoverPoints;
     return ownScore >= ENTRY_THRESHOLD;
   })();
 
-  const getStatusMessage = () => {
-    if (isAITurn && isAIActing && !isRolling) return t('thinking');
-    if (isAITurn && isRolling) return t('rolling');
-    if (turn.phase === TurnPhase.ENDED) return t('turnEnded');
-    if (isAITurn) return '';
-
-    switch (turn.phase) {
-      case TurnPhase.ROLLING:
-        return t('rollToStart');
-      case TurnPhase.STEAL_REQUIRED:
-        return t('stealAttempt');
-      case TurnPhase.KEEPING:
-        if (selectedIndices.length === 0) {
-          return t('tapToKeep');
-        }
-        return wouldBankBeValid
-          ? t('rollOrBank')
-          : t('needThreshold', { threshold: ENTRY_THRESHOLD });
-      case TurnPhase.DECIDING:
-        return t('riskOrBank');
-      default:
-        return '';
-    }
-  };
-
   return (
     <div
-      className="game-board"
+      className="game-board-container"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -398,192 +419,130 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         maxWidth: 'var(--max-content-width)',
         margin: '0 auto',
         width: '100%',
+        minHeight: '100%',
       }}
     >
-      {/* Mobile: Status bar at top */}
-      <header
-        aria-label="Current player status"
+      {/* Help button - floating */}
+      <button
+        onClick={() => setShowHelp(true)}
+        className="btn btn-ghost btn-sm"
+        aria-label={t('showRules')}
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-2)',
-          padding: 'var(--space-4)',
-          background: isAITurn ? 'var(--color-accent-light)' : 'var(--color-primary-light)',
-          borderRadius: 'var(--radius-xl)',
-          border: isAITurn
-            ? '2px solid var(--color-accent)'
-            : '2px solid var(--color-primary)',
+          position: 'fixed',
+          top: 'calc(var(--header-height) + var(--space-2))',
+          right: 'var(--space-4)',
+          fontSize: 'var(--font-size-lg)',
+          minWidth: 44,
+          minHeight: 44,
+          zIndex: 'var(--z-raised)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 'var(--font-size-xl)',
-              fontWeight: 'var(--font-weight-bold)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-            }}
-          >
-            {t('turnOf', { name: currentPlayer.name })}
-            {isAITurn && (
-              <span
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  background: 'var(--color-accent)',
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                AI
-              </span>
-            )}
-          </h2>
-          <button
-            onClick={() => setShowHelp(true)}
-            className="btn btn-ghost btn-sm"
-            aria-label={t('showRules')}
-            style={{
-              fontSize: 'var(--font-size-lg)',
-              minWidth: 44,
-              minHeight: 44,
-            }}
-          >
-            ?
-          </button>
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 'var(--font-size-base)',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          {getStatusMessage()}
-        </p>
-      </header>
+        ?
+      </button>
 
-      {/* Main game area - responsive grid */}
+      {/* Main content grid */}
       <div
-        className="game-content"
+        className="game-layout"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr',
           gap: 'var(--space-4)',
+          flex: 1,
         }}
       >
-        {/* Primary column: Dice and actions */}
-        <main className="game-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <DiceRoll
-            dice={turn.currentRoll || EMPTY_DICE}
-            diceRemaining={turn.currentRoll?.length || turn.diceRemaining}
-            onSelectionChange={setSelectedIndices}
-            onRoll={handleRoll}
-            canRoll={canRoll}
-            disabled={isAITurn || (turn.phase !== TurnPhase.KEEPING && turn.phase !== TurnPhase.STEAL_REQUIRED)}
-            rolling={isRolling}
-            aiKeptDice={isAITurn ? turn.keptDice : undefined}
-            selectedCount={selectedIndices.length}
-            showHints={showHints}
-          />
+        {/* Game Theater - the unified interaction area */}
+        <GameTheater
+          playerName={currentPlayer.name}
+          playerScore={currentPlayer.score}
+          isOnBoard={currentPlayer.isOnBoard}
+          isAI={isAITurn}
+          turnPhase={turn.phase}
+          turnScore={turn.turnScore}
+          carryoverPoints={turn.carryoverPoints}
+          diceRemaining={turn.diceRemaining}
+          currentRoll={turn.currentRoll}
+          keptDice={turn.keptDice}
+          selectedIndices={selectedIndices}
+          selectableIndices={selectableIndices}
+          scoringIndices={scoringIndices}
+          selectionScore={selectionScore}
+          onDieClick={handleDieClick}
+          onRoll={handleRoll}
+          onBank={handleBank}
+          onKeepAndBank={handleKeepAndBank}
+          onDeclineCarryover={handleDeclineCarryover}
+          canRoll={canRoll}
+          canBank={canBankNow && !isAITurn}
+          canKeepAndBank={hasValidSelection && !isAITurn && wouldBankBeValid && (turn.phase === TurnPhase.KEEPING || turn.phase === TurnPhase.STEAL_REQUIRED)}
+          canDeclineCarryover={turn.phase === TurnPhase.STEAL_REQUIRED && !isAITurn}
+          wouldBankBeValid={wouldBankBeValid}
+          isRolling={isRolling}
+          isAIActing={isAIActing}
+          showHints={showHints}
+        />
 
-          {/* Selection feedback */}
-          <AnimatePresence>
-            {selectedScore > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                style={{
-                  textAlign: 'center',
-                  padding: 'var(--space-3)',
-                  background: 'var(--color-primary-light)',
-                  borderRadius: 'var(--radius-lg)',
-                  fontSize: 'var(--font-size-base)',
-                  border: '1px solid var(--color-primary)',
-                }}
-              >
-                {t('selected')} <strong style={{ color: 'var(--color-primary)' }}>+{selectedScore}</strong>
-                {turn.turnScore > 0 && (
-                  <span style={{ marginLeft: 'var(--space-3)', color: 'var(--color-text-secondary)' }}>
-                    ({t('turnTotal')} <strong>{turn.turnScore + selectedScore}</strong>)
-                  </span>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Action buttons */}
-          <ActionButtons
-            onBank={handleBank}
-            onKeepAndBank={handleKeepAndBank}
-            onDeclineCarryover={handleDeclineCarryover}
-            canBank={canBankNow && !isAITurn}
-            canKeepAndBank={hasValidSelection && !isAITurn && wouldBankBeValid && (turn.phase === TurnPhase.KEEPING || turn.phase === TurnPhase.STEAL_REQUIRED)}
-            canDeclineCarryover={turn.phase === TurnPhase.STEAL_REQUIRED && !isAITurn}
-          />
-
-          {/* Bust notification */}
-          <AnimatePresence>
-            {turn.phase === TurnPhase.ENDED && turn.turnScore === 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                style={{
-                  textAlign: 'center',
-                  padding: 'var(--space-5)',
-                  background: 'var(--color-danger-light)',
-                  border: '2px solid var(--color-danger)',
-                  borderRadius: 'var(--radius-xl)',
-                  fontSize: 'var(--font-size-2xl)',
-                  fontWeight: 'var(--font-weight-bold)',
-                  color: 'var(--color-danger)',
-                }}
-                role="alert"
-              >
-                {t('bust')}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </main>
-
-        {/* Sidebar: Score and players */}
+        {/* Sidebar content - shown on larger screens */}
         <aside
           className="game-sidebar"
           style={{
-            display: 'flex',
+            display: 'none',
             flexDirection: 'column',
             gap: 'var(--space-4)',
           }}
         >
-          <ScoreDisplay
-            turnState={turn}
-            isOnBoard={currentPlayer.isOnBoard}
-            playerScore={currentPlayer.score}
-          />
-          <PlayerList
-            players={gameState.players}
-            currentPlayerIndex={gameState.currentPlayerIndex}
-            isFinalRound={gameState.isFinalRound}
-          />
           <TurnHistory
             history={turnHistory}
             currentTurnRolls={currentTurnRolls}
             currentTurnScore={turn.turnScore}
-            maxVisible={3}
+            maxVisible={5}
           />
         </aside>
       </div>
+
+      {/* Player standings bar - always visible at bottom */}
+      <PlayerBar
+        players={gameState.players}
+        currentPlayerIndex={gameState.currentPlayerIndex}
+        isFinalRound={gameState.isFinalRound}
+      />
+
+      {/* Bust overlay */}
+      <AnimatePresence>
+        {turn.phase === TurnPhase.ENDED && turn.turnScore === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(239, 68, 68, 0.2)',
+              backdropFilter: 'blur(2px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 'var(--z-overlay)',
+              pointerEvents: 'none',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.5 }}
+              style={{
+                fontSize: 'var(--font-size-4xl)',
+                fontWeight: 'var(--font-weight-bold)',
+                color: 'var(--color-danger)',
+                textShadow: '0 0 40px rgba(239, 68, 68, 0.5)',
+              }}
+            >
+              {t('bust')}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Help panel */}
       <AnimatePresence>
@@ -593,18 +552,35 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
       {/* Responsive styles */}
       <style>{`
         @media (min-width: 768px) {
-          .game-content {
-            grid-template-columns: 1fr 320px !important;
+          .game-layout {
+            grid-template-columns: 1fr 280px !important;
+          }
+          .game-sidebar {
+            display: flex !important;
           }
         }
 
         @media (min-width: 1024px) {
-          .game-content {
-            grid-template-columns: 1fr 360px !important;
+          .game-layout {
+            grid-template-columns: 1fr 320px !important;
             gap: var(--space-5) !important;
           }
-          .game-board {
+          .game-board-container {
             padding: var(--space-5) !important;
+          }
+        }
+
+        /* Fire button animation */
+        .btn-fire {
+          animation: fire-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fire-pulse {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(239, 68, 68, 0.2);
+          }
+          50% {
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(239, 68, 68, 0.4);
           }
         }
       `}</style>
