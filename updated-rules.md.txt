@@ -1,0 +1,202 @@
+# Greed Dice Game
+
+### Official Rules
+
+Greed is a fast, high‑risk dice game for 2 or more players. Players push their luck to build large scores, knowing that one bad roll can wipe out an entire turn—or even hand a valuable opportunity to the next player.
+
+The object of the game is to be the player with the **highest total score** when the game ends.
+
+---
+
+## Equipment
+
+* Five six‑sided dice
+* Paper and pencil for scoring
+
+---
+
+## Objective
+
+* Be the first player to reach the **target score** (default: **10,000 points**).
+* Once the target score is reached, all other players get **one final turn**.
+* The highest total score after the final round wins.
+
+---
+
+## Getting Into the Game
+
+* A player must score **at least 600 points in a single turn** to get “on the board.”
+* Points scored before meeting this requirement do **not** count.
+* Points gained from a carryover (see below) **cannot** be used to enter the game.
+
+---
+
+## Turn Overview
+
+On your turn:
+
+1. Roll the dice available to you.
+2. Set aside (keep) one or more scoring dice.
+3. Add their value to your turn score.
+4. Either roll the remaining dice again or stop and bank your points. **You may only bank points during a turn in which you have already met the entry requirement (see Getting Into the Game).**
+
+At least **one scoring die must be kept on every roll**.
+
+If at any time you roll and **do not roll a 1, a 5, or a valid scoring combination**, your turn ends immediately and you score **zero points for the entire turn**.
+
+---
+
+## Scoring
+
+### Scoring Table
+
+| Dice / Combination                      | Points                                    |
+| --------------------------------------- | ----------------------------------------- |
+| Single 1                                | 100                                       |
+| Single 5                                | 50                                        |
+| Three 1s                                | 1000                                      |
+| Three 2s                                | 200                                       |
+| Three 3s                                | 300                                       |
+| Three 4s                                | 400                                       |
+| Three 5s                                | 500                                       |
+| Three 6s                                | 600                                       |
+| Four of a kind (any number)             | Double the matching three‑of‑a‑kind value |
+| Five of a kind                          | Double the matching four‑of‑a‑kind value  |
+| Small Straight (1-2-3-4 or 2-3-4-5)     | 750                                       |
+| Large Straight (1-2-3-4-5 or 2-3-4-5-6) | 1500                                      |
+
+---
+
+### Single Dice
+
+* Each **1** is worth **100 points**.
+* Each **5** is worth **50 points**.
+
+No other single dice score points by themselves.
+
+---
+
+### Scoring Combinations
+
+(All combinations must be rolled in a single roll.)
+
+* Three 1s = 1000 points
+
+* Three 2s = 200 points
+
+* Three 3s = 300 points
+
+* Three 4s = 400 points
+
+* Three 5s = 500 points
+
+* Three 6s = 600 points
+
+* Four of a kind (any number) = **double** the matching three‑of‑a‑kind value
+
+  * Examples: 4×1s = 2000; 4×5s = 1000; 4×6s = 1200
+
+* Five of a kind = **double** the matching four‑of‑a‑kind value
+
+  * Example: 5×6s = 2400
+
+* **Small Straight** (1‑2‑3‑4 or 2‑3‑4‑5) = 750 points
+
+  * A small straight may be scored **along with** an extra single 1 or 5, if present.
+
+* **Large Straight** (1‑2‑3‑4‑5 **or** 2‑3‑4‑5‑6) = 1500 points
+
+  * Uses all five dice; no additional single scoring applies.
+
+---
+
+### Partial Combinations
+
+* Players may keep any dice they wish.
+* **A combination only scores if all required dice are kept.**
+* If you keep only part of a possible combination, that combination does not score.
+* Only 1s and 5s score as singles.
+
+**Example:**
+
+* Roll: 2‑2‑2‑5‑6
+
+  * Keeping all three 2s scores 200 points.
+  * Keeping only two 2s scores nothing.
+  * Keeping the 5 alone scores 50 points.
+  * Keeping all three 2s and the 5 scores 250 points. 
+
+---
+
+## Hot Dice
+
+* If you score using **all five dice**, you receive **five fresh dice** and may continue your turn.
+
+---
+
+## Ending a Turn Voluntarily
+
+* You may stop rolling at any time **during a turn in which you are already on the board** and bank your turn score.
+* If you have not yet met the entry requirement, you must continue rolling until you either qualify or bust.
+* If you stop while you still have dice remaining, a **carryover opportunity** is created for the next player.
+
+---
+
+## Carryover Rule
+
+If a player ends their turn with dice remaining:
+
+* They bank their points immediately.
+* The **next player** may either attempt to build on that score by rolling the remaining dice, or decline the carryover entirely. If the carryover is declined, it is immediately lost.
+
+### Carryover Attempt
+
+* The next player must roll the leftover dice.
+* If the roll contains **at least one 1 or 5**, the carryover is successful:
+
+  * The next player starts their turn with the previous player’s score as their base + plus the value that they rolled with the remaining dice. 
+  * They continue playing normally from there.
+* If the roll contains **no 1 and no 5**:
+
+  * The turn ends immediately.
+  * The player scores zero.
+  * The carryover opportunity is lost and does not pass to any other player.
+
+**Example:**
+
+* Player A ends their turn with 1500 points and 2 dice unrolled.
+* Player B rolls those 2 dice.
+
+  * If B rolls 1‑2, they now have 1600 points and may continue.
+  * If B rolls 4-5, they now have 1550 points and may continue
+  * If B rolls 1‑5, they now have 1650 points; since all remaining dice were scored, **hot dice applies** and B continues with five fresh dice.
+  * If B rolls 2‑3, their turn ends immediately with zero points.
+
+A player may not bank immediately after a successful carryover roll; they must first score at least one 1 or 5.
+
+---
+
+## Bust
+
+* If you roll and score **no 1, no 5, and no valid scoring combination**, your turn ends immediately.
+* You lose **all points accumulated during that turn**.
+
+---
+
+## End of the Game
+
+* When a player reaches **10,000**, that score becomes the **score to beat**.
+* All other players get **one full turn** to try to beat it.
+* If no one beats the score, that player wins.
+* If someone **does** beat it, the new score becomes the score to beat and all other players again get one turn.
+* This continues until a round ends with no new high score.
+
+### Tie-Breaker
+
+* If players are tied for the highest score, **the player who reached that score first wins**.
+
+---
+
+**Greed favors courage.
+Greed punishes hesitation.
+Choose wisely.**
