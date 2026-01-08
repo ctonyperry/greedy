@@ -9,6 +9,15 @@ interface ActionButtonsProps {
   canDeclineCarryover: boolean;
 }
 
+/**
+ * ActionButtons - Secondary game actions
+ *
+ * Features:
+ * - Large touch targets (48px minimum)
+ * - Clear action labels
+ * - Contextual visibility
+ * - Accessible button states
+ */
 export function ActionButtons({
   onBank,
   onKeepAndBank,
@@ -24,9 +33,11 @@ export function ActionButtons({
 
   return (
     <div
+      role="group"
+      aria-label="Game actions"
       style={{
         display: 'flex',
-        gap: 12,
+        gap: 'var(--space-3)',
         justifyContent: 'center',
         flexWrap: 'wrap',
       }}
@@ -34,18 +45,12 @@ export function ActionButtons({
       {canKeepAndBank && (
         <motion.button
           onClick={onKeepAndBank}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn btn-warning btn-lg"
           style={{
-            padding: '14px 32px',
-            fontSize: 16,
-            fontWeight: 'bold',
-            background: '#f59e0b',
-            color: '#1a1a2e',
-            border: 'none',
-            borderRadius: 12,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+            flex: '1 1 auto',
+            maxWidth: 250,
           }}
         >
           Bank Points
@@ -55,18 +60,12 @@ export function ActionButtons({
       {canBank && (
         <motion.button
           onClick={onBank}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn btn-warning btn-lg"
           style={{
-            padding: '14px 32px',
-            fontSize: 16,
-            fontWeight: 'bold',
-            background: '#f59e0b',
-            color: '#1a1a2e',
-            border: 'none',
-            borderRadius: 12,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
+            flex: '1 1 auto',
+            maxWidth: 250,
           }}
         >
           Bank
@@ -76,21 +75,15 @@ export function ActionButtons({
       {canDeclineCarryover && (
         <motion.button
           onClick={onDeclineCarryover}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn btn-ghost btn-lg"
           style={{
-            padding: '14px 32px',
-            fontSize: 16,
-            fontWeight: 'bold',
-            background: '#6b7280',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 12,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(107, 114, 128, 0.3)',
+            flex: '1 1 auto',
+            maxWidth: 200,
           }}
         >
-          Decline
+          Decline & Start Fresh
         </motion.button>
       )}
     </div>

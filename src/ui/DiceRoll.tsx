@@ -3,6 +3,7 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Die } from './Die.js';
 import type { Dice, DieValue } from '../types/index.js';
 import { getSelectableIndices } from '../engine/validation.js';
+import { scoreSelection } from '../engine/scoring.js';
 
 interface DiceRollProps {
   dice: Dice;
@@ -14,8 +15,19 @@ interface DiceRollProps {
   rolling?: boolean;
   aiKeptDice?: Dice;
   selectedCount?: number;
+  showHints?: boolean;
 }
 
+/**
+ * DiceRoll component - Main dice interaction area
+ *
+ * Features:
+ * - Mobile-first responsive layout
+ * - Clear visual separation between rollable and kept dice
+ * - Scoring hints for new players
+ * - Smooth animations between states
+ * - Large touch targets for all dice
+ */
 export function DiceRoll({
   dice,
   diceRemaining,
@@ -26,6 +38,7 @@ export function DiceRoll({
   rolling,
   aiKeptDice,
   selectedCount = 0,
+  showHints = false,
 }: DiceRollProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const prevDiceRef = useRef<string>('');
@@ -38,7 +51,6 @@ export function DiceRoll({
       prevDiceRef.current = diceKey;
       setSelectedIndices(new Set());
       onSelectionChange([]);
-      // Store the rolled values
       if (dice.length > 0) {
         setLastRolledValues([...dice]);
       }
@@ -52,6 +64,32 @@ export function DiceRoll({
     }
     return getSelectableIndices(dice, Array.from(selectedIndices));
   }, [dice, selectedIndices, disabled, rolling]);
+
+  // Calculate which dice would score if selected (for hints)
+  const scoringIndices = useMemo(() => {
+    if (!showHints || disabled || rolling || dice.length === 0) {
+      return new Set<number>();
+    }
+    const scoring = new Set<number>();
+    dice.forEach((value, index) => {
+      if (value === 1 || value === 5) {
+        scoring.add(index);
+      }
+    });
+    // Check for triples
+    const counts = new Map<DieValue, number[]>();
+    dice.forEach((value, index) => {
+      const indices = counts.get(value) || [];
+      indices.push(index);
+      counts.set(value, indices);
+    });
+    counts.forEach((indices) => {
+      if (indices.length >= 3) {
+        indices.forEach(i => scoring.add(i));
+      }
+    });
+    return scoring;
+  }, [dice, showHints, disabled, rolling]);
 
   const toggleDie = (index: number) => {
     if (disabled || rolling) return;
@@ -75,210 +113,260 @@ export function DiceRoll({
     ? []
     : dice.map((value, index) => ({ value, index })).filter(d => selectedIndices.has(d.index));
 
-  // Calculate how many placeholder dice to show
+  // Calculate placeholders
   const actualDiceInRoll = rollDice.length;
   const diceAfterKeeping = diceRemaining - selectedCount;
   const placeholderCount = dice.length === 0 ? diceRemaining : Math.max(0, diceAfterKeeping - actualDiceInRoll);
 
   // Get roll button text
   const getRollButtonText = () => {
-    if (rolling) return '...';
+    if (rolling) return 'Rolling...';
     if (selectedCount > 0) {
-      if (diceAfterKeeping === 0) return 'Hot!';
-      return `Roll ${diceAfterKeeping}`;
+      if (diceAfterKeeping === 0) return 'Hot Dice!';
+      return `Keep & Roll ${diceAfterKeeping}`;
     }
-    if (dice.length === 0) return 'Roll';
+    if (dice.length === 0) return 'Roll Dice';
     return `Roll ${diceRemaining}`;
   };
 
+  // Calculate selection score for feedback
+  const selectionScore = useMemo(() => {
+    if (selectedIndices.size === 0) return 0;
+    const selectedDice = Array.from(selectedIndices).map(i => dice[i]);
+    return scoreSelection(selectedDice).score;
+  }, [selectedIndices, dice]);
+
   return (
     <LayoutGroup>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Roll Section with inline button */}
-        <div
+      <div
+        className="dice-roll-container"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-4)',
+        }}
+      >
+        {/* Roll Section */}
+        <section
+          aria-label="Dice to roll"
           style={{
-            display: 'flex',
-            alignItems: 'stretch',
-            gap: 0,
+            background: 'var(--color-surface)',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-4)',
+            minHeight: 120,
+            position: 'relative',
           }}
         >
-          {/* Dice area */}
-          <div
+          <header
             style={{
-              flex: 1,
-              padding: '24px 20px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '16px 0 0 16px',
-              minHeight: 108,
-              position: 'relative',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-3)',
             }}
           >
-            <span style={{
-              position: 'absolute',
-              top: 8,
-              left: 12,
-              fontSize: 11,
-              color: 'rgba(255, 255, 255, 0.4)',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-            }}>
-              Roll
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-semibold)',
+                color: 'var(--color-text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {dice.length === 0 ? 'Ready to Roll' : 'Tap dice to keep'}
             </span>
+            {dice.length > 0 && selectionScore === 0 && !isAITurn && (
+              <span
+                style={{
+                  fontSize: 'var(--font-size-sm)',
+                  color: 'var(--color-text-tertiary)',
+                }}
+              >
+                Select scoring dice
+              </span>
+            )}
+          </header>
 
-            <div style={{
+          <div
+            style={{
               display: 'flex',
-              gap: 12,
+              gap: 'var(--space-3)',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              minHeight: 60,
+              minHeight: 'var(--die-size)',
               alignItems: 'center',
-            }}>
-              <AnimatePresence mode="popLayout">
-                {/* Show actual rolled dice */}
-                {rollDice.map(({ value, index }) => {
-                  const isSelectable = selectableIndices.has(index);
-                  return (
-                    <motion.div
-                      key={`die-${index}`}
-                      layoutId={`die-${index}`}
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 180 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    >
-                      <Die
-                        value={value}
-                        selected={false}
-                        disabled={disabled || !isSelectable}
-                        onClick={() => toggleDie(index)}
-                        rolling={rolling}
-                      />
-                    </motion.div>
-                  );
-                })}
+              padding: 'var(--space-2) 0',
+            }}
+          >
+            <AnimatePresence mode="popLayout">
+              {/* Rolled dice */}
+              {rollDice.map(({ value, index }) => {
+                const isSelectable = selectableIndices.has(index);
+                const isScoring = scoringIndices.has(index);
+                return (
+                  <motion.div
+                    key={`die-${index}`}
+                    layoutId={`die-${index}`}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: 180 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    <Die
+                      value={value}
+                      selected={false}
+                      disabled={disabled || !isSelectable}
+                      onClick={() => toggleDie(index)}
+                      rolling={rolling}
+                      scoringHint={showHints && isScoring && !disabled}
+                    />
+                  </motion.div>
+                );
+              })}
 
-                {/* Show placeholder dice for remaining dice to roll */}
-                {Array.from({ length: placeholderCount }).map((_, i) => {
-                  const placeholderValue = lastRolledValues[rollDice.length + i] || (Math.floor(Math.random() * 6) + 1) as DieValue;
-                  return (
-                    <motion.div
-                      key={`placeholder-${i}`}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 0.4, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    >
-                      <Die
-                        value={placeholderValue}
-                        disabled={true}
-                        dimmed={true}
-                        rolling={rolling}
-                      />
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
+              {/* Placeholder dice */}
+              {Array.from({ length: placeholderCount }).map((_, i) => {
+                const placeholderValue = (lastRolledValues[rollDice.length + i] ||
+                  ((Math.floor(Math.random() * 6) + 1) as DieValue));
+                return (
+                  <motion.div
+                    key={`placeholder-${i}`}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 0.4, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    <Die
+                      value={placeholderValue}
+                      disabled={true}
+                      dimmed={true}
+                      rolling={rolling}
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
 
-              {dice.length === 0 && placeholderCount === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontSize: 16,
-                  }}
-                >
-                  Press Roll to start
-                </motion.div>
-              )}
-            </div>
+            {/* Empty state */}
+            {dice.length === 0 && placeholderCount === 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  fontSize: 'var(--font-size-base)',
+                  textAlign: 'center',
+                }}
+              >
+                Press the button to roll
+              </motion.p>
+            )}
           </div>
 
-          {/* Inline Roll Button */}
+          {/* Roll Button - Part of the roll area for mobile UX */}
           {onRoll && canRoll && !isAITurn && (
             <motion.button
               onClick={onRoll}
               disabled={rolling}
+              className="btn btn-primary btn-lg"
               whileHover={rolling ? {} : { scale: 1.02 }}
               whileTap={rolling ? {} : { scale: 0.98 }}
-              animate={rolling ? { opacity: 0.7 } : { opacity: 1 }}
               style={{
-                padding: '0 24px',
-                fontSize: 14,
-                fontWeight: 'bold',
+                width: '100%',
+                marginTop: 'var(--space-4)',
                 background: selectedCount > 0
-                  ? 'linear-gradient(135deg, #4ade80, #22c55e)'
-                  : 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '0 16px 16px 0',
-                cursor: rolling ? 'wait' : 'pointer',
-                minWidth: 80,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                  ? 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))'
+                  : 'linear-gradient(135deg, var(--color-secondary), var(--color-secondary-hover))',
                 boxShadow: selectedCount > 0
-                  ? 'inset 0 0 20px rgba(0,0,0,0.1)'
-                  : 'inset 0 0 20px rgba(0,0,0,0.1)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
+                  ? 'var(--shadow-glow-primary), var(--shadow-md)'
+                  : 'var(--shadow-glow-secondary), var(--shadow-md)',
               }}
+              aria-label={getRollButtonText()}
             >
               {getRollButtonText()}
             </motion.button>
           )}
 
-          {/* Placeholder for button space when not rollable */}
-          {(!onRoll || !canRoll || isAITurn) && (
-            <div
+          {/* Waiting for AI */}
+          {isAITurn && !rolling && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               style={{
-                width: 80,
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: '0 16px 16px 0',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+                textAlign: 'center',
+                padding: 'var(--space-3)',
+                color: 'var(--color-accent)',
+                fontSize: 'var(--font-size-base)',
               }}
-            />
+            >
+              AI is thinking...
+            </motion.div>
           )}
-        </div>
+        </section>
 
-        {/* Keep Section */}
-        <div
+        {/* Keep Section - Shows selected dice */}
+        <section
+          aria-label="Dice being kept"
           style={{
-            padding: 20,
             background: (keepDice.length > 0 || (aiKeptDice && aiKeptDice.length > 0))
-              ? isAITurn ? 'rgba(139, 92, 246, 0.1)' : 'rgba(74, 222, 128, 0.1)'
-              : 'rgba(255, 255, 255, 0.02)',
-            borderRadius: 12,
+              ? isAITurn ? 'var(--color-accent-light)' : 'var(--color-primary-light)'
+              : 'var(--color-surface)',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-4)',
             border: (keepDice.length > 0 || (aiKeptDice && aiKeptDice.length > 0))
-              ? isAITurn ? '2px solid rgba(139, 92, 246, 0.3)' : '2px solid rgba(74, 222, 128, 0.3)'
-              : '2px dashed rgba(255, 255, 255, 0.1)',
-            minHeight: 88,
-            position: 'relative',
-            transition: 'all 0.2s ease',
+              ? isAITurn ? '2px solid var(--color-accent)' : '2px solid var(--color-primary)'
+              : '2px dashed var(--color-border)',
+            minHeight: 100,
+            transition: 'all var(--transition-base)',
           }}
         >
-          <span style={{
-            position: 'absolute',
-            top: 8,
-            left: 12,
-            fontSize: 11,
-            color: (keepDice.length > 0 || (aiKeptDice && aiKeptDice.length > 0))
-              ? isAITurn ? 'rgba(139, 92, 246, 0.8)' : 'rgba(74, 222, 128, 0.8)'
-              : 'rgba(255, 255, 255, 0.3)',
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}>
-            {isAITurn ? 'AI Keeping' : 'Keep'}
-          </span>
+          <header
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-3)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-semibold)',
+                color: (keepDice.length > 0 || (aiKeptDice && aiKeptDice.length > 0))
+                  ? isAITurn ? 'var(--color-accent)' : 'var(--color-primary)'
+                  : 'var(--color-text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {isAITurn ? 'AI Keeping' : 'Keeping'}
+            </span>
+            {selectionScore > 0 && !isAITurn && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                style={{
+                  fontSize: 'var(--font-size-lg)',
+                  fontWeight: 'var(--font-weight-bold)',
+                  color: 'var(--color-primary)',
+                }}
+              >
+                +{selectionScore}
+              </motion.span>
+            )}
+          </header>
 
-          <div style={{
-            display: 'flex',
-            gap: 12,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            minHeight: 50,
-            alignItems: 'center',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 'var(--space-3)',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              minHeight: 'var(--die-size)',
+              alignItems: 'center',
+            }}
+          >
             {/* Human turn: show selected dice */}
             {!isAITurn && (
               <AnimatePresence mode="popLayout">
@@ -307,7 +395,7 @@ export function DiceRoll({
                     key={`ai-kept-${index}`}
                     initial={{ scale: 0, rotate: -90 }}
                     animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: index * 0.1 }}
                   >
                     <Die
                       value={value}
@@ -321,80 +409,54 @@ export function DiceRoll({
 
             {/* Empty state messages */}
             {!isAITurn && keepDice.length === 0 && dice.length > 0 && (
-              <motion.div
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 style={{
-                  color: 'rgba(255, 255, 255, 0.3)',
-                  fontSize: 13,
+                  color: 'var(--color-text-tertiary)',
+                  fontSize: 'var(--font-size-base)',
+                  textAlign: 'center',
                 }}
               >
                 Tap dice above to keep them
-              </motion.div>
+              </motion.p>
             )}
 
-            {isAITurn && (!aiKeptDice || aiKeptDice.length === 0) && (
-              <motion.div
+            {!isAITurn && keepDice.length === 0 && dice.length === 0 && (
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 style={{
-                  color: 'rgba(139, 92, 246, 0.5)',
-                  fontSize: 13,
+                  color: 'var(--color-text-muted)',
+                  fontSize: 'var(--font-size-sm)',
+                  textAlign: 'center',
                 }}
               >
-                AI is thinking...
-              </motion.div>
+                Selected dice appear here
+              </motion.p>
+            )}
+
+            {isAITurn && (!aiKeptDice || aiKeptDice.length === 0) && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  color: 'var(--color-accent)',
+                  fontSize: 'var(--font-size-base)',
+                  textAlign: 'center',
+                }}
+              >
+                Waiting for AI...
+              </motion.p>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </LayoutGroup>
   );
 }
 
-interface KeptDiceProps {
-  dice: Dice;
-}
-
-export function KeptDice({ dice }: KeptDiceProps) {
-  if (dice.length === 0) return null;
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 8,
-        padding: 16,
-        background: 'rgba(74, 222, 128, 0.1)',
-        borderRadius: 12,
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-        border: '2px solid rgba(74, 222, 128, 0.3)',
-      }}
-    >
-      <span style={{
-        width: '100%',
-        textAlign: 'center',
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 8,
-      }}>
-        Banked This Turn
-      </span>
-      {dice.map((value, index) => (
-        <motion.div
-          key={index}
-          initial={{ scale: 0 }}
-          animate={{ scale: 0.8 }}
-        >
-          <Die value={value} disabled />
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// Turn history entry
+// Export supporting components
 export interface TurnHistoryEntry {
   playerName: string;
   dice: Dice;
@@ -410,32 +472,42 @@ interface TurnHistoryProps {
   maxVisible?: number;
 }
 
-export function TurnHistory({ history, currentTurnRolls, currentTurnScore = 0, maxVisible = 3 }: TurnHistoryProps) {
+export function TurnHistory({
+  history,
+  currentTurnRolls,
+  currentTurnScore = 0,
+  maxVisible = 3,
+}: TurnHistoryProps) {
   const hasCurrentTurn = currentTurnRolls.length > 0 || currentTurnScore > 0;
   const recentHistory = history.slice(-maxVisible);
 
   if (!hasCurrentTurn && recentHistory.length === 0) return null;
 
   return (
-    <div
+    <aside
+      aria-label="Turn history"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        padding: 12,
-        background: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: 12,
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        gap: 'var(--space-2)',
+        padding: 'var(--space-3)',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--color-border)',
       }}
     >
-      <span style={{
-        fontSize: 11,
-        color: 'rgba(255, 255, 255, 0.5)',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-      }}>
+      <h3
+        style={{
+          fontSize: 'var(--font-size-sm)',
+          fontWeight: 'var(--font-weight-semibold)',
+          color: 'var(--color-text-tertiary)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          margin: 0,
+        }}
+      >
         Recent Turns
-      </span>
+      </h3>
 
       {/* Current turn */}
       {hasCurrentTurn && (
@@ -443,57 +515,70 @@ export function TurnHistory({ history, currentTurnRolls, currentTurnScore = 0, m
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           style={{
-            padding: 10,
-            background: 'rgba(74, 222, 128, 0.15)',
-            borderRadius: 8,
-            border: '1px solid rgba(74, 222, 128, 0.3)',
+            padding: 'var(--space-3)',
+            background: 'var(--color-primary-light)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--color-primary)',
           }}
         >
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: currentTurnRolls.length > 0 ? 6 : 0,
-          }}>
-            <span style={{ fontSize: 11, color: 'rgba(74, 222, 128, 0.9)', fontWeight: 'bold' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: currentTurnRolls.length > 0 ? 'var(--space-2)' : 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-primary)',
+                fontWeight: 'var(--font-weight-bold)',
+              }}
+            >
               Current Turn
             </span>
             {currentTurnScore > 0 && (
-              <span style={{
-                fontSize: 12,
-                fontWeight: 'bold',
-                color: 'rgba(74, 222, 128, 0.9)',
-              }}>
+              <span
+                style={{
+                  fontSize: 'var(--font-size-base)',
+                  fontWeight: 'var(--font-weight-bold)',
+                  color: 'var(--color-primary)',
+                }}
+              >
                 +{currentTurnScore}
               </span>
             )}
           </div>
           {currentTurnRolls.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {currentTurnRolls.map((rollDice, rollIndex) => (
                 <div
                   key={rollIndex}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 'var(--space-2)',
                   }}
                 >
-                  <span style={{
-                    fontSize: 9,
-                    color: 'rgba(74, 222, 128, 0.6)',
-                    minWidth: 14,
-                  }}>
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-xs)',
+                      color: 'var(--color-text-tertiary)',
+                      minWidth: 16,
+                    }}
+                  >
                     {rollIndex + 1}.
                   </span>
-                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
                     {rollDice.map((value, dieIndex) => (
                       <motion.div
                         key={dieIndex}
                         initial={{ scale: 0 }}
-                        animate={{ scale: 0.55 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: dieIndex * 0.05 }}
                       >
-                        <Die value={value} disabled />
+                        <Die value={value} disabled size="sm" />
                       </motion.div>
                     ))}
                   </div>
@@ -509,69 +594,74 @@ export function TurnHistory({ history, currentTurnRolls, currentTurnScore = 0, m
         <motion.div
           key={`history-${history.length - index}`}
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 - (index * 0.2) }}
+          animate={{ opacity: 1 - index * 0.2 }}
           style={{
-            padding: 10,
-            background: entry.busted
-              ? 'rgba(239, 68, 68, 0.1)'
-              : 'rgba(255, 255, 255, 0.05)',
-            borderRadius: 8,
+            padding: 'var(--space-3)',
+            background: entry.busted ? 'var(--color-danger-light)' : 'var(--color-surface-hover)',
+            borderRadius: 'var(--radius-lg)',
             border: entry.busted
-              ? '1px solid rgba(239, 68, 68, 0.2)'
-              : '1px solid rgba(255, 255, 255, 0.1)',
+              ? '1px solid var(--color-danger)'
+              : '1px solid var(--color-border)',
           }}
         >
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: entry.dice.length > 0 ? 6 : 0,
-          }}>
-            <span style={{
-              fontSize: 11,
-              color: 'rgba(255, 255, 255, 0.6)',
+          <div
+            style={{
               display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              gap: 4,
-            }}>
+              marginBottom: entry.dice.length > 0 ? 'var(--space-2)' : 0,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-1)',
+              }}
+            >
               {entry.playerName}
               {entry.isAI && (
-                <span style={{
-                  fontSize: 9,
-                  background: 'rgba(139, 92, 246, 0.3)',
-                  padding: '1px 4px',
-                  borderRadius: 3,
-                }}>
+                <span
+                  style={{
+                    fontSize: 'var(--font-size-xs)',
+                    background: 'var(--color-accent-light)',
+                    color: 'var(--color-accent)',
+                    padding: '2px 6px',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
                   AI
                 </span>
               )}
             </span>
-            <span style={{
-              fontSize: 12,
-              fontWeight: 'bold',
-              color: entry.busted
-                ? 'rgba(239, 68, 68, 0.8)'
-                : 'rgba(74, 222, 128, 0.8)',
-            }}>
+            <span
+              style={{
+                fontSize: 'var(--font-size-base)',
+                fontWeight: 'var(--font-weight-bold)',
+                color: entry.busted ? 'var(--color-danger)' : 'var(--color-primary)',
+              }}
+            >
               {entry.busted ? 'BUST' : `+${entry.score}`}
             </span>
           </div>
           {entry.dice.length > 0 && (
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
               {entry.dice.map((value, dieIndex) => (
                 <div
                   key={dieIndex}
                   style={{
-                    width: 20,
-                    height: 20,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: 4,
+                    width: 24,
+                    height: 24,
+                    background: 'var(--color-surface-active)',
+                    borderRadius: 'var(--radius-sm)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    opacity: 0.7,
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 'var(--font-weight-bold)',
+                    color: 'var(--color-text-secondary)',
                   }}
                 >
                   {value}
@@ -579,6 +669,51 @@ export function TurnHistory({ history, currentTurnRolls, currentTurnScore = 0, m
               ))}
             </div>
           )}
+        </motion.div>
+      ))}
+    </aside>
+  );
+}
+
+// KeptDice component for showing banked dice
+interface KeptDiceProps {
+  dice: Dice;
+}
+
+export function KeptDice({ dice }: KeptDiceProps) {
+  if (dice.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 'var(--space-2)',
+        padding: 'var(--space-4)',
+        background: 'var(--color-primary-light)',
+        borderRadius: 'var(--radius-xl)',
+        justifyContent: 'center',
+        flexWrap: 'wrap',
+        border: '2px solid var(--color-primary)',
+      }}
+    >
+      <span
+        style={{
+          width: '100%',
+          textAlign: 'center',
+          fontSize: 'var(--font-size-sm)',
+          color: 'var(--color-text-secondary)',
+          marginBottom: 'var(--space-2)',
+        }}
+      >
+        Banked This Turn
+      </span>
+      {dice.map((value, index) => (
+        <motion.div
+          key={index}
+          initial={{ scale: 0 }}
+          animate={{ scale: 0.8 }}
+        >
+          <Die value={value} disabled size="sm" />
         </motion.div>
       ))}
     </div>

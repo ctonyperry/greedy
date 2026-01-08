@@ -8,6 +8,15 @@ interface ScoreDisplayProps {
   playerScore: number;
 }
 
+/**
+ * ScoreDisplay - Current turn and total score visualization
+ *
+ * Features:
+ * - Large, readable numbers
+ * - Visual progress bars
+ * - Clear entry threshold indicator
+ * - Animated score updates
+ */
 export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplayProps) {
   const ownScore = turnState.turnScore - turnState.carryoverPoints;
   const needsEntry = !isOnBoard;
@@ -15,102 +24,226 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
   const targetProgress = Math.min(100, (playerScore / TARGET_SCORE) * 100);
 
   return (
-    <div
+    <section
+      aria-label="Score display"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 16,
-        padding: 20,
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
+        gap: 'var(--space-4)',
+        padding: 'var(--space-4)',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--color-border)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.6)' }}>Turn Score</span>
-        <AnimatePresence mode="popLayout">
-          <motion.span
-            key={turnState.turnScore}
-            initial={{ scale: 1.5, color: '#4ade80' }}
-            animate={{ scale: 1, color: '#fff' }}
-            style={{ fontSize: 32, fontWeight: 'bold' }}
+      {/* Turn Score */}
+      <div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            marginBottom: 'var(--space-2)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 'var(--font-size-base)',
+              color: 'var(--color-text-secondary)',
+              fontWeight: 'var(--font-weight-medium)',
+            }}
           >
-            {turnState.turnScore.toLocaleString()}
-          </motion.span>
-        </AnimatePresence>
+            Turn Score
+          </span>
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={turnState.turnScore}
+              initial={{ scale: 1.3, color: 'var(--color-primary)' }}
+              animate={{ scale: 1, color: 'var(--color-text-primary)' }}
+              style={{
+                fontSize: 'var(--font-size-2xl)',
+                fontWeight: 'var(--font-weight-bold)',
+              }}
+            >
+              {turnState.turnScore.toLocaleString()}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+
+        {turnState.carryoverPoints > 0 && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-tertiary)',
+            }}
+          >
+            (Includes {turnState.carryoverPoints.toLocaleString()} from carryover)
+          </p>
+        )}
       </div>
 
-      {turnState.carryoverPoints > 0 && (
-        <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)' }}>
-          Includes {turnState.carryoverPoints.toLocaleString()} from carryover
-        </div>
-      )}
-
+      {/* Entry Progress (only show if not on board) */}
       {needsEntry && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
-              Entry Progress (need {ENTRY_THRESHOLD} own points)
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-2)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              Entry Progress
             </span>
-            <span style={{ fontSize: 12, color: entryProgress >= 100 ? '#4ade80' : '#fff' }}>
+            <span
+              style={{
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 'var(--font-weight-semibold)',
+                color: entryProgress >= 100 ? 'var(--color-primary)' : 'var(--color-text-primary)',
+              }}
+            >
               {ownScore} / {ENTRY_THRESHOLD}
             </span>
           </div>
           <div
             style={{
-              height: 8,
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: 4,
+              height: 10,
+              background: 'var(--color-surface-active)',
+              borderRadius: 'var(--radius-full)',
               overflow: 'hidden',
             }}
           >
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${entryProgress}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
               style={{
                 height: '100%',
-                background: entryProgress >= 100 ? '#4ade80' : '#f59e0b',
-                borderRadius: 4,
+                background: entryProgress >= 100
+                  ? 'var(--color-primary)'
+                  : 'var(--color-warning)',
+                borderRadius: 'var(--radius-full)',
               }}
             />
           </div>
+          {entryProgress < 100 && (
+            <p
+              style={{
+                margin: 'var(--space-2) 0 0',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-warning)',
+              }}
+            >
+              Need {ENTRY_THRESHOLD - ownScore} more to get on the board
+            </p>
+          )}
+          {entryProgress >= 100 && (
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                margin: 'var(--space-2) 0 0',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-primary)',
+                fontWeight: 'var(--font-weight-semibold)',
+              }}
+            >
+              Ready to get on the board!
+            </motion.p>
+          )}
         </div>
       )}
 
-      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)' }}>
+      {/* Total Score Progress */}
+      <div
+        style={{
+          borderTop: '1px solid var(--color-border)',
+          paddingTop: 'var(--space-3)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--space-2)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-secondary)',
+            }}
+          >
             Total Score
           </span>
-          <span style={{ fontSize: 14, fontWeight: 'bold' }}>
+          <span
+            style={{
+              fontSize: 'var(--font-size-base)',
+              fontWeight: 'var(--font-weight-bold)',
+            }}
+          >
             {playerScore.toLocaleString()} / {TARGET_SCORE.toLocaleString()}
           </span>
         </div>
         <div
           style={{
-            height: 6,
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: 3,
+            height: 8,
+            background: 'var(--color-surface-active)',
+            borderRadius: 'var(--radius-full)',
             overflow: 'hidden',
           }}
         >
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${targetProgress}%` }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
             style={{
               height: '100%',
-              background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
-              borderRadius: 3,
+              background: 'linear-gradient(90deg, var(--color-secondary), var(--color-accent))',
+              borderRadius: 'var(--radius-full)',
             }}
           />
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 24, fontWeight: 'bold' }}>{turnState.diceRemaining}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)' }}>Dice Left</div>
-        </div>
+      {/* Dice Remaining */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 'var(--space-3)',
+          padding: 'var(--space-3)',
+          background: 'var(--color-surface-hover)',
+          borderRadius: 'var(--radius-lg)',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 'var(--font-size-3xl)',
+            fontWeight: 'var(--font-weight-bold)',
+            color: turnState.diceRemaining === 5 ? 'var(--color-primary)' : 'var(--color-text-primary)',
+          }}
+        >
+          {turnState.diceRemaining}
+        </span>
+        <span
+          style={{
+            fontSize: 'var(--font-size-sm)',
+            color: 'var(--color-text-tertiary)',
+          }}
+        >
+          dice remaining
+        </span>
       </div>
-    </div>
+    </section>
   );
 }

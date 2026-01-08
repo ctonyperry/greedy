@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { PlayerState } from '../types/index.js';
+import { TARGET_SCORE } from '../engine/constants.js';
 
 interface PlayerListProps {
   players: PlayerState[];
@@ -7,89 +8,233 @@ interface PlayerListProps {
   isFinalRound: boolean;
 }
 
+/**
+ * PlayerList - Shows all players and their scores
+ *
+ * Features:
+ * - Clear current player indicator
+ * - Visual progress toward winning
+ * - Final round warning
+ * - Compact but readable on mobile
+ */
 export function PlayerList({ players, currentPlayerIndex, isFinalRound }: PlayerListProps) {
+  // Sort players by score for ranking display
+  const rankedPlayers = [...players]
+    .map((player, index) => ({ ...player, originalIndex: index }))
+    .sort((a, b) => b.score - a.score);
+
+  const leader = rankedPlayers[0];
+
   return (
-    <div
+    <section
+      aria-label="Player scores"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
-        padding: 16,
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
+        gap: 'var(--space-2)',
+        padding: 'var(--space-4)',
+        background: 'var(--color-surface)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--color-border)',
       }}
     >
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-      }}>
-        <span style={{ fontSize: 14, fontWeight: 'bold' }}>Players</span>
-        {isFinalRound && (
-          <span style={{
-            fontSize: 11,
-            padding: '2px 8px',
-            background: '#ef4444',
-            borderRadius: 4,
-            fontWeight: 'bold',
-          }}>
-            FINAL ROUND
-          </span>
-        )}
-      </div>
-
-      {players.map((player, index) => (
-        <motion.div
-          key={player.id}
-          animate={{
-            scale: index === currentPlayerIndex ? 1 : 0.95,
-            opacity: index === currentPlayerIndex ? 1 : 0.7,
-          }}
+      <header
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--space-2)',
+        }}
+      >
+        <h3
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '10px 12px',
-            background: index === currentPlayerIndex
-              ? 'rgba(74, 222, 128, 0.2)'
-              : 'rgba(255, 255, 255, 0.03)',
-            borderRadius: 8,
-            border: index === currentPlayerIndex
-              ? '2px solid rgba(74, 222, 128, 0.5)'
-              : '2px solid transparent',
+            margin: 0,
+            fontSize: 'var(--font-size-base)',
+            fontWeight: 'var(--font-weight-semibold)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: index === currentPlayerIndex ? 'bold' : 'normal' }}>
-              {player.name}
-            </span>
-            {player.isAI && (
-              <span style={{
-                fontSize: 10,
-                padding: '1px 4px',
-                background: 'rgba(139, 92, 246, 0.3)',
-                borderRadius: 3,
-              }}>
-                AI
-              </span>
-            )}
-            {!player.isOnBoard && (
-              <span style={{
-                fontSize: 10,
-                padding: '1px 4px',
-                background: 'rgba(251, 191, 36, 0.3)',
-                borderRadius: 3,
-              }}>
-                Not on board
-              </span>
-            )}
-          </div>
-          <span style={{ fontWeight: 'bold', fontSize: 16 }}>
-            {player.score.toLocaleString()}
-          </span>
-        </motion.div>
-      ))}
-    </div>
+          Players
+        </h3>
+        {isFinalRound && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            style={{
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-bold)',
+              padding: 'var(--space-1) var(--space-2)',
+              background: 'var(--color-danger)',
+              color: 'white',
+              borderRadius: 'var(--radius-sm)',
+              textTransform: 'uppercase',
+            }}
+          >
+            Final Round
+          </motion.span>
+        )}
+      </header>
+
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+        }}
+      >
+        {players.map((player, index) => {
+          const isCurrent = index === currentPlayerIndex;
+          const isLeader = player.id === leader.id && player.score > 0;
+          const progress = Math.min(100, (player.score / TARGET_SCORE) * 100);
+
+          return (
+            <motion.li
+              key={player.id}
+              animate={{
+                scale: isCurrent ? 1 : 0.98,
+                opacity: isCurrent ? 1 : 0.8,
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-1)',
+                padding: 'var(--space-3)',
+                background: isCurrent
+                  ? 'var(--color-primary-light)'
+                  : 'var(--color-surface-hover)',
+                borderRadius: 'var(--radius-lg)',
+                border: isCurrent
+                  ? '2px solid var(--color-primary)'
+                  : '2px solid transparent',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  {/* Current player indicator */}
+                  {isCurrent && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: 'var(--color-primary)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      fontSize: 'var(--font-size-base)',
+                      fontWeight: isCurrent ? 'var(--font-weight-bold)' : 'var(--font-weight-normal)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {player.name}
+                  </span>
+
+                  {/* Badges */}
+                  <div style={{ display: 'flex', gap: 'var(--space-1)', flexShrink: 0 }}>
+                    {player.isAI && (
+                      <span
+                        style={{
+                          fontSize: 'var(--font-size-xs)',
+                          padding: '2px 6px',
+                          background: 'var(--color-accent-light)',
+                          color: 'var(--color-accent)',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
+                        AI
+                      </span>
+                    )}
+                    {!player.isOnBoard && (
+                      <span
+                        style={{
+                          fontSize: 'var(--font-size-xs)',
+                          padding: '2px 6px',
+                          background: 'var(--color-warning-light)',
+                          color: 'var(--color-warning)',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
+                        Not on board
+                      </span>
+                    )}
+                    {isLeader && (
+                      <span
+                        style={{
+                          fontSize: 'var(--font-size-xs)',
+                          padding: '2px 6px',
+                          background: 'var(--color-primary-light)',
+                          color: 'var(--color-primary)',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
+                        Leader
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    fontSize: 'var(--font-size-lg)',
+                    fontWeight: 'var(--font-weight-bold)',
+                    marginLeft: 'var(--space-2)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {player.score.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Mini progress bar */}
+              {player.score > 0 && (
+                <div
+                  style={{
+                    height: 3,
+                    background: 'var(--color-surface-active)',
+                    borderRadius: 'var(--radius-full)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    style={{
+                      height: '100%',
+                      background: isCurrent
+                        ? 'var(--color-primary)'
+                        : 'var(--color-secondary)',
+                      borderRadius: 'var(--radius-full)',
+                    }}
+                  />
+                </div>
+              )}
+            </motion.li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

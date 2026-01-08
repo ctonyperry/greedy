@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import type { ReactNode } from 'react';
 import type { DieValue } from '../types/index.js';
 
 interface DieProps {
@@ -9,82 +8,111 @@ interface DieProps {
   dimmed?: boolean;
   onClick?: () => void;
   rolling?: boolean;
+  scoringHint?: boolean;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const dieFaces: Record<DieValue, ReactNode> = {
-  1: (
-    <div className="die-face">
-      <span className="pip center" />
-    </div>
-  ),
-  2: (
-    <div className="die-face">
-      <span className="pip top-right" />
-      <span className="pip bottom-left" />
-    </div>
-  ),
-  3: (
-    <div className="die-face">
-      <span className="pip top-right" />
-      <span className="pip center" />
-      <span className="pip bottom-left" />
-    </div>
-  ),
-  4: (
-    <div className="die-face">
-      <span className="pip top-left" />
-      <span className="pip top-right" />
-      <span className="pip bottom-left" />
-      <span className="pip bottom-right" />
-    </div>
-  ),
-  5: (
-    <div className="die-face">
-      <span className="pip top-left" />
-      <span className="pip top-right" />
-      <span className="pip center" />
-      <span className="pip bottom-left" />
-      <span className="pip bottom-right" />
-    </div>
-  ),
-  6: (
-    <div className="die-face">
-      <span className="pip top-left" />
-      <span className="pip top-right" />
-      <span className="pip middle-left" />
-      <span className="pip middle-right" />
-      <span className="pip bottom-left" />
-      <span className="pip bottom-right" />
-    </div>
-  ),
-};
+/**
+ * Die component with proper accessibility
+ *
+ * Features:
+ * - WCAG 2.1 AA compliant touch targets (48px minimum)
+ * - Screen reader announcements for die values
+ * - Visual pip pattern for recognition
+ * - Responsive sizing
+ * - Animation states for rolling/selection
+ */
+export function Die({
+  value,
+  selected = false,
+  disabled = false,
+  dimmed = false,
+  onClick,
+  rolling = false,
+  scoringHint = false,
+  size = 'md',
+}: DieProps) {
+  const sizeClasses = {
+    sm: 'die-sm',
+    md: 'die-md',
+    lg: 'die-lg',
+  };
 
-export function Die({ value, selected, disabled, dimmed, onClick, rolling }: DieProps) {
+  const sizeStyles = {
+    sm: { width: 48, height: 48 },
+    md: { width: 'var(--die-size)', height: 'var(--die-size)' },
+    lg: { width: 72, height: 72 },
+  };
+
+  const pipSize = {
+    sm: 8,
+    md: 10,
+    lg: 14,
+  };
+
+  const faceSize = {
+    sm: 38,
+    md: 50,
+    lg: 58,
+  };
+
+  // Pip positions for each die value
+  const getPipPositions = (val: DieValue): string[] => {
+    const positions: Record<DieValue, string[]> = {
+      1: ['center'],
+      2: ['top-right', 'bottom-left'],
+      3: ['top-right', 'center', 'bottom-left'],
+      4: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+      5: ['top-left', 'top-right', 'center', 'bottom-left', 'bottom-right'],
+      6: ['top-left', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-right'],
+    };
+    return positions[val];
+  };
+
+  const getAriaLabel = () => {
+    const baseLabel = `Die showing ${value}`;
+    if (selected) return `${baseLabel}, selected`;
+    if (disabled) return `${baseLabel}, not selectable`;
+    if (scoringHint) return `${baseLabel}, scores points - tap to select`;
+    return `${baseLabel}, tap to select`;
+  };
+
   return (
     <motion.button
-      className={`die ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''} ${dimmed ? 'dimmed' : ''}`}
+      type="button"
+      className={`die ${sizeClasses[size]} ${selected ? 'selected' : ''} ${disabled ? 'disabled' : ''} ${dimmed ? 'dimmed' : ''} ${scoringHint ? 'scoring-hint' : ''}`}
       onClick={disabled ? undefined : onClick}
-      whileHover={disabled ? {} : { scale: 1.05 }}
-      whileTap={disabled ? {} : { scale: 0.95 }}
+      disabled={disabled}
+      aria-label={getAriaLabel()}
+      aria-pressed={selected}
+      whileHover={disabled ? {} : { scale: 1.08 }}
+      whileTap={disabled ? {} : { scale: 0.92 }}
       animate={
         rolling
           ? {
               rotateX: [0, 360, 720],
-              rotateY: [0, 360, 720],
+              rotateY: [0, 180, 360],
+              scale: [1, 1.1, 1],
             }
-          : { rotateX: 0, rotateY: 0 }
+          : selected
+          ? { scale: 1.05 }
+          : { scale: 1, rotateX: 0, rotateY: 0 }
       }
       transition={
         rolling
           ? { duration: 0.5, ease: 'easeOut' }
-          : { duration: 0.2 }
+          : { type: 'spring', stiffness: 400, damping: 25 }
       }
       style={{
-        width: 60,
-        height: 60,
-        background: dimmed ? 'rgba(255, 255, 255, 0.15)' : selected ? '#4ade80' : '#fff',
-        border: dimmed ? '2px dashed rgba(255, 255, 255, 0.3)' : 'none',
-        borderRadius: 8,
+        width: sizeStyles[size].width,
+        height: sizeStyles[size].height,
+        background: dimmed
+          ? 'rgba(255, 255, 255, 0.12)'
+          : selected
+          ? 'var(--color-primary)'
+          : '#ffffff',
+        border: dimmed ? '2px dashed rgba(255, 255, 255, 0.25)' : 'none',
+        borderRadius: 'var(--radius-lg)',
         cursor: disabled ? 'default' : 'pointer',
         display: 'grid',
         placeItems: 'center',
@@ -92,35 +120,58 @@ export function Die({ value, selected, disabled, dimmed, onClick, rolling }: Die
         boxShadow: dimmed
           ? 'none'
           : selected
-          ? '0 0 20px rgba(74, 222, 128, 0.5)'
-          : '0 4px 12px rgba(0, 0, 0, 0.3)',
-        opacity: disabled && !dimmed ? 0.5 : 1,
+          ? 'var(--shadow-glow-primary), var(--shadow-md)'
+          : scoringHint
+          ? '0 0 12px rgba(245, 158, 11, 0.5), var(--shadow-md)'
+          : 'var(--shadow-md)',
+        opacity: disabled && !dimmed ? 0.4 : 1,
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
       }}
     >
-      {dieFaces[value]}
-      <style>{`
-        .die-face {
-          width: 50px;
-          height: 50px;
-          position: relative;
-        }
-        .pip {
-          position: absolute;
-          width: 10px;
-          height: 10px;
-          background: #1a1a2e;
-          border-radius: 50%;
-        }
-        .center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .top-left { top: 6px; left: 6px; }
-        .top-right { top: 6px; right: 6px; }
-        .middle-left { top: 50%; left: 6px; transform: translateY(-50%); }
-        .middle-right { top: 50%; right: 6px; transform: translateY(-50%); }
-        .bottom-left { bottom: 6px; left: 6px; }
-        .bottom-right { bottom: 6px; right: 6px; }
-        .die.selected .pip { background: #1a1a2e; }
-        .die.dimmed .pip { background: rgba(255, 255, 255, 0.4); }
-      `}</style>
+      <div
+        className="die-face"
+        style={{
+          width: faceSize[size],
+          height: faceSize[size],
+          position: 'relative',
+        }}
+        aria-hidden="true"
+      >
+        {getPipPositions(value).map((position, index) => (
+          <span
+            key={`${position}-${index}`}
+            className={`pip ${position}`}
+            style={{
+              position: 'absolute',
+              width: pipSize[size],
+              height: pipSize[size],
+              background: dimmed
+                ? 'rgba(255, 255, 255, 0.4)'
+                : 'var(--color-background)',
+              borderRadius: '50%',
+              ...getPipStyle(position, size),
+            }}
+          />
+        ))}
+      </div>
     </motion.button>
   );
+}
+
+// Helper to get pip position styles
+function getPipStyle(position: string, size: 'sm' | 'md' | 'lg'): React.CSSProperties {
+  const offset = size === 'sm' ? '12%' : '10%';
+
+  const styles: Record<string, React.CSSProperties> = {
+    center: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
+    'top-left': { top: offset, left: offset },
+    'top-right': { top: offset, right: offset },
+    'middle-left': { top: '50%', left: offset, transform: 'translateY(-50%)' },
+    'middle-right': { top: '50%', right: offset, transform: 'translateY(-50%)' },
+    'bottom-left': { bottom: offset, left: offset },
+    'bottom-right': { bottom: offset, right: offset },
+  };
+
+  return styles[position] || {};
 }
