@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/greed/',
+  base: '/greedy/',
   server: {
     port: 3000,
   },
