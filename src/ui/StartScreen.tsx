@@ -252,7 +252,6 @@ export function StartScreen({ onStart }: StartScreenProps) {
             index={index}
             player={players[index]}
             onUpdate={(updates) => updatePlayer(index, updates)}
-            t={t}
             getStrategyName={getStrategyName}
             getStrategyDesc={getStrategyDesc}
           />
@@ -294,12 +293,12 @@ interface PlayerCardProps {
   index: number;
   player: PlayerConfig;
   onUpdate: (updates: Partial<PlayerConfig>) => void;
-  t: (key: string, params?: Record<string, string | number>) => string;
   getStrategyName: (strategy: string) => string;
   getStrategyDesc: (strategy: string) => string;
 }
 
-function PlayerCard({ index, player, onUpdate, t, getStrategyName, getStrategyDesc }: PlayerCardProps) {
+function PlayerCard({ index, player, onUpdate, getStrategyName, getStrategyDesc }: PlayerCardProps) {
+  const { t } = useI18n();
   return (
     <div
       style={{

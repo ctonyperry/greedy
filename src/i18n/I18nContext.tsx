@@ -54,7 +54,7 @@ export function I18nProvider({ children }: I18nProviderProps) {
 
   const t = useCallback(
     (key: TranslationKey, params?: Record<string, string | number>): string => {
-      let text = translations[language][key] || translations.en[key] || key;
+      let text: string = translations[language][key] || translations.en[key] || key;
 
       // Replace parameters like {name} with actual values
       if (params) {
