@@ -3,12 +3,11 @@ import { Die } from './Die.js';
 import type { Dice, DieValue } from '../types/index.js';
 import { TurnPhase } from '../types/index.js';
 import { useI18n } from '../i18n/index.js';
-import { ENTRY_THRESHOLD, TARGET_SCORE } from '../engine/constants.js';
+import { ENTRY_THRESHOLD } from '../engine/constants.js';
 
 interface GameTheaterProps {
   // Player info
   playerName: string;
-  playerScore: number;
   isOnBoard: boolean;
   isAI: boolean;
 
@@ -38,7 +37,6 @@ interface GameTheaterProps {
   canBank: boolean;
   canKeepAndBank: boolean;
   canDeclineCarryover: boolean;
-  wouldBankBeValid: boolean;
   isRolling: boolean;
   isAIActing: boolean;
   showHints: boolean;
@@ -56,7 +54,6 @@ interface GameTheaterProps {
  */
 export function GameTheater({
   playerName,
-  playerScore,
   isOnBoard,
   isAI,
   turnPhase,
@@ -78,7 +75,6 @@ export function GameTheater({
   canBank,
   canKeepAndBank,
   canDeclineCarryover,
-  wouldBankBeValid,
   isRolling,
   isAIActing,
   showHints,

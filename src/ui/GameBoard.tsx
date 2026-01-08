@@ -455,7 +455,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         {/* Game Theater - the unified interaction area */}
         <GameTheater
           playerName={currentPlayer.name}
-          playerScore={currentPlayer.score}
           isOnBoard={currentPlayer.isOnBoard}
           isAI={isAITurn}
           turnPhase={turn.phase}
@@ -477,7 +476,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
           canBank={canBankNow && !isAITurn}
           canKeepAndBank={hasValidSelection && !isAITurn && wouldBankBeValid && (turn.phase === TurnPhase.KEEPING || turn.phase === TurnPhase.STEAL_REQUIRED)}
           canDeclineCarryover={turn.phase === TurnPhase.STEAL_REQUIRED && !isAITurn}
-          wouldBankBeValid={wouldBankBeValid}
           isRolling={isRolling}
           isAIActing={isAIActing}
           showHints={showHints}
