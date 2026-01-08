@@ -4,6 +4,7 @@ import { Die } from './Die.js';
 import type { Dice, DieValue } from '../types/index.js';
 import { getSelectableIndices } from '../engine/validation.js';
 import { scoreSelection } from '../engine/scoring.js';
+import { useI18n } from '../i18n/index.js';
 
 interface DiceRollProps {
   dice: Dice;
@@ -40,6 +41,7 @@ export function DiceRoll({
   selectedCount = 0,
   showHints = false,
 }: DiceRollProps) {
+  const { t } = useI18n();
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const prevDiceRef = useRef<string>('');
   const [lastRolledValues, setLastRolledValues] = useState<DieValue[]>([]);
@@ -120,13 +122,13 @@ export function DiceRoll({
 
   // Get roll button text
   const getRollButtonText = () => {
-    if (rolling) return 'Rolling...';
+    if (rolling) return t('rolling');
     if (selectedCount > 0) {
-      if (diceAfterKeeping === 0) return 'Hot Dice!';
-      return `Keep & Roll ${diceAfterKeeping}`;
+      if (diceAfterKeeping === 0) return t('hotDice');
+      return t('keepAndRoll', { count: diceAfterKeeping });
     }
-    if (dice.length === 0) return 'Roll Dice';
-    return `Roll ${diceRemaining}`;
+    if (dice.length === 0) return t('rollDice');
+    return t('roll', { count: diceRemaining });
   };
 
   // Calculate selection score for feedback
@@ -174,7 +176,7 @@ export function DiceRoll({
                 letterSpacing: '0.05em',
               }}
             >
-              {dice.length === 0 ? 'Ready to Roll' : 'Tap dice to keep'}
+              {dice.length === 0 ? t('readyToRoll') : t('tapDiceToKeep')}
             </span>
             {dice.length > 0 && selectionScore === 0 && !isAITurn && (
               <span
@@ -183,7 +185,7 @@ export function DiceRoll({
                   color: 'var(--color-text-tertiary)',
                 }}
               >
-                Select scoring dice
+                {t('selectScoringDice')}
               </span>
             )}
           </header>
@@ -259,7 +261,7 @@ export function DiceRoll({
                   textAlign: 'center',
                 }}
               >
-                Press the button to roll
+                {t('pressToRoll')}
               </motion.p>
             )}
           </div>
@@ -300,7 +302,7 @@ export function DiceRoll({
                 fontSize: 'var(--font-size-base)',
               }}
             >
-              AI is thinking...
+              {t('aiThinking')}
             </motion.div>
           )}
         </section>
@@ -340,7 +342,7 @@ export function DiceRoll({
                 letterSpacing: '0.05em',
               }}
             >
-              {isAITurn ? 'AI Keeping' : 'Keeping'}
+              {isAITurn ? t('aiKeeping') : t('keeping')}
             </span>
             {selectionScore > 0 && !isAITurn && (
               <motion.span
@@ -418,7 +420,7 @@ export function DiceRoll({
                   textAlign: 'center',
                 }}
               >
-                Tap dice above to keep them
+                {t('tapDiceAbove')}
               </motion.p>
             )}
 
@@ -432,7 +434,7 @@ export function DiceRoll({
                   textAlign: 'center',
                 }}
               >
-                Selected dice appear here
+                {t('selectedDiceHere')}
               </motion.p>
             )}
 
@@ -446,7 +448,7 @@ export function DiceRoll({
                   textAlign: 'center',
                 }}
               >
-                Waiting for AI...
+                {t('waitingForAI')}
               </motion.p>
             )}
           </div>
@@ -478,6 +480,7 @@ export function TurnHistory({
   currentTurnScore = 0,
   maxVisible = 3,
 }: TurnHistoryProps) {
+  const { t } = useI18n();
   const hasCurrentTurn = currentTurnRolls.length > 0 || currentTurnScore > 0;
   const recentHistory = history.slice(-maxVisible);
 
@@ -506,7 +509,7 @@ export function TurnHistory({
           margin: 0,
         }}
       >
-        Recent Turns
+        {t('recentTurns')}
       </h3>
 
       {/* Current turn */}
@@ -536,7 +539,7 @@ export function TurnHistory({
                 fontWeight: 'var(--font-weight-bold)',
               }}
             >
-              Current Turn
+              {t('currentTurn')}
             </span>
             {currentTurnScore > 0 && (
               <span
@@ -643,7 +646,7 @@ export function TurnHistory({
                 color: entry.busted ? 'var(--color-danger)' : 'var(--color-primary)',
               }}
             >
-              {entry.busted ? 'BUST' : `+${entry.score}`}
+              {entry.busted ? t('bust') : `+${entry.score}`}
             </span>
           </div>
           {entry.dice.length > 0 && (
@@ -705,7 +708,7 @@ export function KeptDice({ dice }: KeptDiceProps) {
           marginBottom: 'var(--space-2)',
         }}
       >
-        Banked This Turn
+        {/* Banked This Turn - not currently translated but could be */}
       </span>
       {dice.map((value, index) => (
         <motion.div

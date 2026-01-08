@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
+import { useI18n } from '../i18n/index.js';
+import { ENTRY_THRESHOLD, TARGET_SCORE } from '../engine/constants.js';
 
 interface HelpPanelProps {
   onClose: () => void;
@@ -15,6 +17,7 @@ interface HelpPanelProps {
  * - Easy to dismiss
  */
 export function HelpPanel({ onClose }: HelpPanelProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Focus management for accessibility
@@ -103,12 +106,12 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
               fontWeight: 'var(--font-weight-bold)',
             }}
           >
-            How to Play Greedy
+            {t('howToPlay')}
           </h2>
           <button
             onClick={onClose}
             className="btn btn-ghost"
-            aria-label="Close help"
+            aria-label={t('close')}
             style={{
               fontSize: 'var(--font-size-xl)',
               minWidth: 44,
@@ -131,35 +134,34 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
         >
           {/* Goal */}
           <section>
-            <h3 style={sectionTitleStyle}>Goal</h3>
+            <h3 style={sectionTitleStyle}>{t('helpGoal')}</h3>
             <p style={paragraphStyle}>
-              Be the first player to reach <strong>10,000 points</strong>!
+              {t('helpGoalText', { target: TARGET_SCORE.toLocaleString() })}
             </p>
           </section>
 
           {/* Basic Rules */}
           <section>
-            <h3 style={sectionTitleStyle}>How to Play</h3>
+            <h3 style={sectionTitleStyle}>{t('helpHowToPlay')}</h3>
             <ol style={{ ...paragraphStyle, paddingLeft: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <li><strong>Roll</strong> all 5 dice to start your turn</li>
-              <li><strong>Keep</strong> any dice that score points (see scoring below)</li>
-              <li><strong>Choose:</strong> Roll the remaining dice for more points, or bank what you have</li>
-              <li>If you roll and get NO scoring dice, you <strong>BUST</strong> and lose all points from this turn!</li>
+              <li><strong>{t('helpStep1')}</strong></li>
+              <li><strong>{t('helpStep2')}</strong></li>
+              <li><strong>{t('helpStep3')}</strong></li>
+              <li><strong>{t('helpStep4')}</strong></li>
             </ol>
           </section>
 
           {/* Getting On Board */}
           <section>
-            <h3 style={sectionTitleStyle}>Getting On Board</h3>
+            <h3 style={sectionTitleStyle}>{t('helpGettingOnBoard')}</h3>
             <p style={paragraphStyle}>
-              Your first scoring turn must be worth at least <strong>650 points</strong> to "get on the board."
-              Until then, any points you bank don't count!
+              {t('helpGettingOnBoardText', { threshold: ENTRY_THRESHOLD })}
             </p>
           </section>
 
           {/* Scoring */}
           <section>
-            <h3 style={sectionTitleStyle}>Scoring</h3>
+            <h3 style={sectionTitleStyle}>{t('helpScoring')}</h3>
             <div
               style={{
                 display: 'grid',
@@ -170,49 +172,46 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
                 padding: 'var(--space-4)',
               }}
             >
-              <ScoreRow label="Single 1" points={100} />
-              <ScoreRow label="Single 5" points={50} />
-              <ScoreRow label="Three 1s" points={1000} highlight />
-              <ScoreRow label="Three 2s" points={200} />
-              <ScoreRow label="Three 3s" points={300} />
-              <ScoreRow label="Three 4s" points={400} />
-              <ScoreRow label="Three 5s" points={500} />
-              <ScoreRow label="Three 6s" points={600} />
-              <ScoreRow label="Four of a kind" points="2× triple" />
-              <ScoreRow label="Five of a kind" points="4× triple" />
-              <ScoreRow label="Small straight (4 in a row)" points={750} />
-              <ScoreRow label="Large straight (5 in a row)" points={1500} highlight />
+              <ScoreRow label={t('helpSingle1')} points={100} />
+              <ScoreRow label={t('helpSingle5')} points={50} />
+              <ScoreRow label={t('helpThree1s')} points={1000} highlight />
+              <ScoreRow label={t('helpThree2s')} points={200} />
+              <ScoreRow label={t('helpThree3s')} points={300} />
+              <ScoreRow label={t('helpThree4s')} points={400} />
+              <ScoreRow label={t('helpThree5s')} points={500} />
+              <ScoreRow label={t('helpThree6s')} points={600} />
+              <ScoreRow label={t('helpFourOfKind')} points={t('helpDoubleTriple')} />
+              <ScoreRow label={t('helpFiveOfKind')} points={t('helpQuadrupleTriple')} />
+              <ScoreRow label={t('helpSmallStraight')} points={750} />
+              <ScoreRow label={t('helpLargeStraight')} points={1500} highlight />
             </div>
           </section>
 
           {/* Hot Dice */}
           <section>
-            <h3 style={sectionTitleStyle}>Hot Dice!</h3>
+            <h3 style={sectionTitleStyle}>{t('helpHotDice')}</h3>
             <p style={paragraphStyle}>
-              If you keep all 5 dice, you get <strong>5 fresh dice</strong> to roll again!
-              Your points carry over - this is how you build huge scores.
+              {t('helpHotDiceText')}
             </p>
           </section>
 
           {/* Carryover */}
           <section>
-            <h3 style={sectionTitleStyle}>Stealing Points</h3>
+            <h3 style={sectionTitleStyle}>{t('helpStealing')}</h3>
             <p style={paragraphStyle}>
-              If someone banks with dice remaining, the next player can try to "steal" those points
-              by continuing where they left off. But you must roll first - if you bust,
-              you get nothing!
+              {t('helpStealingText')}
             </p>
           </section>
 
           {/* Tips */}
           <section>
-            <h3 style={sectionTitleStyle}>Tips for New Players</h3>
+            <h3 style={sectionTitleStyle}>{t('helpTips')}</h3>
             <ul style={{ ...paragraphStyle, paddingLeft: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <li>Single 1s and 5s always score - they're your safety net</li>
-              <li>The more dice you roll, the better your chance of scoring</li>
-              <li>Bank often when you're close to 650 to get on the board</li>
-              <li>Rolling with just 1 or 2 dice is very risky!</li>
-              <li>Watch the other players' scores in the final round</li>
+              <li>{t('helpTip1')}</li>
+              <li>{t('helpTip2')}</li>
+              <li>{t('helpTip3', { threshold: ENTRY_THRESHOLD })}</li>
+              <li>{t('helpTip4')}</li>
+              <li>{t('helpTip5')}</li>
             </ul>
           </section>
         </div>
@@ -231,7 +230,7 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
             className="btn btn-primary btn-lg"
             style={{ minWidth: 200 }}
           >
-            Got it!
+            {t('gotIt')}
           </button>
         </footer>
       </motion.div>

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useI18n } from '../i18n/index.js';
 
 interface ActionButtonsProps {
   onBank: () => void;
@@ -26,6 +27,8 @@ export function ActionButtons({
   canKeepAndBank,
   canDeclineCarryover,
 }: ActionButtonsProps) {
+  const { t } = useI18n();
+
   // Don't render if no buttons to show
   if (!canBank && !canKeepAndBank && !canDeclineCarryover) {
     return null;
@@ -53,7 +56,7 @@ export function ActionButtons({
             maxWidth: 250,
           }}
         >
-          Bank Points
+          {t('bankPoints')}
         </motion.button>
       )}
 
@@ -68,7 +71,7 @@ export function ActionButtons({
             maxWidth: 250,
           }}
         >
-          Bank
+          {t('bank')}
         </motion.button>
       )}
 
@@ -83,7 +86,7 @@ export function ActionButtons({
             maxWidth: 200,
           }}
         >
-          Decline & Start Fresh
+          {t('declineStartFresh')}
         </motion.button>
       )}
     </div>

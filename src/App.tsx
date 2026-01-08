@@ -5,8 +5,10 @@ import type { PlayerConfig } from './ui/StartScreen.js';
 import { GameBoard } from './ui/GameBoard.js';
 import { GameOver } from './ui/GameOver.js';
 import { DebugFooter } from './ui/DebugFooter.js';
+import { LanguageSwitcher } from './ui/LanguageSwitcher.js';
 import { createGameState } from './engine/game.js';
 import { gameLogger } from './debug/GameLogger.js';
+import { useI18n } from './i18n/index.js';
 import type { GameState } from './types/index.js';
 import './styles/design-system.css';
 
@@ -18,9 +20,11 @@ type Screen = 'start' | 'game' | 'gameover';
  * Features:
  * - Responsive header with accessible controls
  * - Hint mode toggle for new players
+ * - Language switcher (English/Portuguese)
  * - Smooth screen transitions
  */
 export function App() {
+  const { t } = useI18n();
   const [screen, setScreen] = useState<Screen>('start');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showHints, setShowHints] = useState(false);
@@ -84,21 +88,24 @@ export function App() {
             backgroundClip: 'text',
           }}
         >
-          GREEDY
+          {t('appTitle')}
         </h1>
 
         {/* Header actions */}
         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+          {/* Language switcher */}
+          <LanguageSwitcher />
+
           {/* Hint toggle (during game) */}
           {screen === 'game' && (
             <button
               onClick={() => setShowHints(!showHints)}
               className={`btn ${showHints ? 'btn-warning' : 'btn-ghost'} btn-sm`}
               aria-pressed={showHints}
-              title={showHints ? 'Hints enabled' : 'Enable hints'}
+              title={showHints ? t('hintsOn') : t('hints')}
               style={{ minHeight: 44, minWidth: 44 }}
             >
-              {showHints ? 'Hints On' : 'Hints'}
+              {showHints ? t('hintsOn') : t('hints')}
             </button>
           )}
 
@@ -109,7 +116,7 @@ export function App() {
               className="btn btn-ghost btn-sm"
               style={{ minHeight: 44 }}
             >
-              New Game
+              {t('newGame')}
             </button>
           )}
         </div>

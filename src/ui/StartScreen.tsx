@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ENTRY_THRESHOLD, TARGET_SCORE } from '../engine/constants.js';
+import { useI18n } from '../i18n/index.js';
 
 export interface PlayerConfig {
   name: string;
@@ -12,12 +13,7 @@ interface StartScreenProps {
   onStart: (players: PlayerConfig[]) => void;
 }
 
-const AI_STRATEGIES = [
-  { id: 'conservative', name: 'Safe', desc: 'Banks early, avoids risk' },
-  { id: 'balanced', name: 'Balanced', desc: 'Smart risk/reward decisions' },
-  { id: 'aggressive', name: 'Risky', desc: 'Pushes for big scores' },
-  { id: 'chaos', name: 'Wild', desc: 'Completely unpredictable' },
-];
+const AI_STRATEGIES = ['conservative', 'balanced', 'aggressive', 'chaos'] as const;
 
 const MAX_PLAYERS = 12;
 
@@ -43,6 +39,7 @@ function createDefaultPlayers(): PlayerConfig[] {
  * - Quick start option for returning players
  */
 export function StartScreen({ onStart }: StartScreenProps) {
+  const { t } = useI18n();
   const [playerCount, setPlayerCount] = useState(2);
   const [players, setPlayers] = useState<PlayerConfig[]>(createDefaultPlayers);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -63,6 +60,26 @@ export function StartScreen({ onStart }: StartScreenProps) {
       { name: 'You', isAI: false, aiStrategy: 'balanced' },
       { name: 'CPU', isAI: true, aiStrategy: 'balanced' },
     ]);
+  };
+
+  const getStrategyName = (strategy: string) => {
+    switch (strategy) {
+      case 'conservative': return t('strategySafe');
+      case 'balanced': return t('strategyBalanced');
+      case 'aggressive': return t('strategyRisky');
+      case 'chaos': return t('strategyWild');
+      default: return strategy;
+    }
+  };
+
+  const getStrategyDesc = (strategy: string) => {
+    switch (strategy) {
+      case 'conservative': return t('strategySafeDesc');
+      case 'balanced': return t('strategyBalancedDesc');
+      case 'aggressive': return t('strategyRiskyDesc');
+      case 'chaos': return t('strategyWildDesc');
+      default: return '';
+    }
   };
 
   return (
@@ -107,7 +124,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
             marginTop: 'var(--space-2)',
           }}
         >
-          A dice game of risk and reward
+          {t('tagline')}
         </p>
       </motion.div>
 
@@ -123,7 +140,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
           className="btn btn-primary btn-xl"
           style={{ width: '100%' }}
         >
-          Quick Start (vs AI)
+          {t('quickStart')}
         </button>
       </motion.div>
 
@@ -138,7 +155,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
         }}
       >
         <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
-        <span style={{ fontSize: 'var(--font-size-sm)' }}>or customize</span>
+        <span style={{ fontSize: 'var(--font-size-sm)' }}>{t('orCustomize')}</span>
         <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
       </div>
 
@@ -164,7 +181,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Number of Players
+          {t('numberOfPlayers')}
         </label>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
           {[2, 3, 4, 5, 6].map((count) => (
@@ -235,6 +252,9 @@ export function StartScreen({ onStart }: StartScreenProps) {
             index={index}
             player={players[index]}
             onUpdate={(updates) => updatePlayer(index, updates)}
+            t={t}
+            getStrategyName={getStrategyName}
+            getStrategyDesc={getStrategyDesc}
           />
         ))}
       </motion.div>
@@ -250,7 +270,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
         transition={{ delay: 0.5 }}
         style={{ width: '100%' }}
       >
-        Start Game
+        {t('startGame')}
       </motion.button>
 
       {/* Game Info */}
@@ -264,8 +284,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
           textAlign: 'center',
         }}
       >
-        First to {TARGET_SCORE.toLocaleString()} wins.
-        Score {ENTRY_THRESHOLD}+ in one turn to get on the board.
+        {t('gameInfo', { target: TARGET_SCORE.toLocaleString(), threshold: ENTRY_THRESHOLD })}
       </motion.p>
     </motion.div>
   );
@@ -275,9 +294,12 @@ interface PlayerCardProps {
   index: number;
   player: PlayerConfig;
   onUpdate: (updates: Partial<PlayerConfig>) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  getStrategyName: (strategy: string) => string;
+  getStrategyDesc: (strategy: string) => string;
 }
 
-function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
+function PlayerCard({ index, player, onUpdate, t, getStrategyName, getStrategyDesc }: PlayerCardProps) {
   return (
     <div
       style={{
@@ -305,7 +327,7 @@ function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
             minWidth: 70,
           }}
         >
-          Player {index + 1}
+          {t('player')} {index + 1}
         </span>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flex: 1 }}>
           <button
@@ -314,7 +336,7 @@ function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
             style={{ flex: 1, minHeight: 44 }}
             aria-pressed={!player.isAI}
           >
-            Human
+            {t('human')}
           </button>
           <button
             onClick={() => onUpdate({ isAI: true })}
@@ -322,7 +344,7 @@ function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
             style={{ flex: 1, minHeight: 44 }}
             aria-pressed={player.isAI}
           >
-            AI
+            {t('ai')}
           </button>
         </div>
       </div>
@@ -332,8 +354,8 @@ function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
         type="text"
         value={player.name}
         onChange={(e) => onUpdate({ name: e.target.value })}
-        placeholder="Enter name"
-        aria-label={`Player ${index + 1} name`}
+        placeholder={t('enterName')}
+        aria-label={`${t('player')} ${index + 1}`}
         style={{
           width: '100%',
           padding: 'var(--space-3)',
@@ -358,19 +380,19 @@ function PlayerCard({ index, player, onUpdate }: PlayerCardProps) {
               marginBottom: 'var(--space-2)',
             }}
           >
-            AI Personality
+            {t('aiPersonality')}
           </span>
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             {AI_STRATEGIES.map((strategy) => (
               <button
-                key={strategy.id}
-                onClick={() => onUpdate({ aiStrategy: strategy.id })}
-                className={`btn ${player.aiStrategy === strategy.id ? 'btn-accent' : 'btn-ghost'} btn-sm`}
+                key={strategy}
+                onClick={() => onUpdate({ aiStrategy: strategy })}
+                className={`btn ${player.aiStrategy === strategy ? 'btn-accent' : 'btn-ghost'} btn-sm`}
                 style={{ minHeight: 44, flex: '1 1 45%' }}
-                title={strategy.desc}
-                aria-pressed={player.aiStrategy === strategy.id}
+                title={getStrategyDesc(strategy)}
+                aria-pressed={player.aiStrategy === strategy}
               >
-                {strategy.name}
+                {getStrategyName(strategy)}
               </button>
             ))}
           </div>

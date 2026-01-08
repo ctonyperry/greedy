@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { GameState } from '../types/index.js';
 import { getWinner } from '../engine/game.js';
+import { useI18n } from '../i18n/index.js';
 
 interface GameOverProps {
   gameState: GameState;
@@ -17,6 +18,7 @@ interface GameOverProps {
  * - Large, easy-to-tap new game button
  */
 export function GameOver({ gameState, onNewGame }: GameOverProps) {
+  const { t } = useI18n();
   const winner = getWinner(gameState);
   const sortedPlayers = [...gameState.players].sort((a, b) => b.score - a.score);
 
@@ -49,7 +51,7 @@ export function GameOver({ gameState, onNewGame }: GameOverProps) {
           textAlign: 'center',
         }}
       >
-        Game Over!
+        {t('gameOver')}
       </motion.h1>
 
       {/* Winner Card */}
@@ -74,7 +76,7 @@ export function GameOver({ gameState, onNewGame }: GameOverProps) {
               color: 'var(--color-text-secondary)',
             }}
           >
-            Winner
+            {t('winner')}
           </span>
           <h2
             style={{
@@ -109,7 +111,7 @@ export function GameOver({ gameState, onNewGame }: GameOverProps) {
               color: 'var(--color-primary)',
             }}
           >
-            {winner.score.toLocaleString()} points
+            {winner.score.toLocaleString()} {t('points')}
           </span>
         </motion.div>
       )}
@@ -131,7 +133,7 @@ export function GameOver({ gameState, onNewGame }: GameOverProps) {
             fontWeight: 'var(--font-weight-semibold)',
           }}
         >
-          Final Standings
+          {t('finalStandings')}
         </h3>
 
         <ol
@@ -236,7 +238,7 @@ export function GameOver({ gameState, onNewGame }: GameOverProps) {
         className="btn btn-secondary btn-xl"
         style={{ width: '100%', maxWidth: 300 }}
       >
-        Play Again
+        {t('playAgain')}
       </motion.button>
     </motion.div>
   );

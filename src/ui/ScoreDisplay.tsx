@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { TurnState } from '../types/index.js';
 import { ENTRY_THRESHOLD, TARGET_SCORE } from '../engine/constants.js';
+import { useI18n } from '../i18n/index.js';
 
 interface ScoreDisplayProps {
   turnState: TurnState;
@@ -18,6 +19,7 @@ interface ScoreDisplayProps {
  * - Animated score updates
  */
 export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplayProps) {
+  const { t } = useI18n();
   const ownScore = turnState.turnScore - turnState.carryoverPoints;
   const needsEntry = !isOnBoard;
   const entryProgress = needsEntry ? Math.min(100, (ownScore / ENTRY_THRESHOLD) * 100) : 100;
@@ -53,7 +55,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
               fontWeight: 'var(--font-weight-medium)',
             }}
           >
-            Turn Score
+            {t('turnScore')}
           </span>
           <AnimatePresence mode="popLayout">
             <motion.span
@@ -78,7 +80,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
               color: 'var(--color-text-tertiary)',
             }}
           >
-            (Includes {turnState.carryoverPoints.toLocaleString()} from carryover)
+            {t('includesCarryover', { points: turnState.carryoverPoints.toLocaleString() })}
           </p>
         )}
       </div>
@@ -100,7 +102,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
                 color: 'var(--color-text-secondary)',
               }}
             >
-              Entry Progress
+              {t('entryProgress')}
             </span>
             <span
               style={{
@@ -141,7 +143,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
                 color: 'var(--color-warning)',
               }}
             >
-              Need {ENTRY_THRESHOLD - ownScore} more to get on the board
+              {t('needMoreToBoard', { points: ENTRY_THRESHOLD - ownScore })}
             </p>
           )}
           {entryProgress >= 100 && (
@@ -155,7 +157,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
                 fontWeight: 'var(--font-weight-semibold)',
               }}
             >
-              Ready to get on the board!
+              {t('readyToBoard')}
             </motion.p>
           )}
         </div>
@@ -182,7 +184,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
               color: 'var(--color-text-secondary)',
             }}
           >
-            Total Score
+            {t('totalScore')}
           </span>
           <span
             style={{
@@ -241,7 +243,7 @@ export function ScoreDisplay({ turnState, isOnBoard, playerScore }: ScoreDisplay
             color: 'var(--color-text-tertiary)',
           }}
         >
-          dice remaining
+          {t('diceRemaining')}
         </span>
       </div>
     </section>

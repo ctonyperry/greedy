@@ -14,6 +14,7 @@ import { scoreSelection } from '../engine/scoring.js';
 import { makeAIDecision, AI_STRATEGIES } from '../ai/strategies.js';
 import { ENTRY_THRESHOLD } from '../engine/constants.js';
 import { gameLogger } from '../debug/GameLogger.js';
+import { useI18n } from '../i18n/index.js';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -38,6 +39,7 @@ const EMPTY_DICE: Dice = [];
  * - Desktop (1024px+): Comfortable spacing, optional turn history
  */
 export function GameBoard({ gameState, onGameStateChange, showHints = false }: GameBoardProps) {
+  const { t } = useI18n();
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [isRolling, setIsRolling] = useState(false);
   const [isAIActing, setIsAIActing] = useState(false);
@@ -343,25 +345,25 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   })();
 
   const getStatusMessage = () => {
-    if (isAITurn && isAIActing && !isRolling) return 'Thinking...';
-    if (isAITurn && isRolling) return 'Rolling...';
-    if (turn.phase === TurnPhase.ENDED) return 'Turn ended';
+    if (isAITurn && isAIActing && !isRolling) return t('thinking');
+    if (isAITurn && isRolling) return t('rolling');
+    if (turn.phase === TurnPhase.ENDED) return t('turnEnded');
     if (isAITurn) return '';
 
     switch (turn.phase) {
       case TurnPhase.ROLLING:
-        return 'Roll the dice to start your turn';
+        return t('rollToStart');
       case TurnPhase.STEAL_REQUIRED:
-        return 'Steal attempt! Roll the inherited dice or decline';
+        return t('stealAttempt');
       case TurnPhase.KEEPING:
         if (selectedIndices.length === 0) {
-          return 'Tap the scoring dice you want to keep';
+          return t('tapToKeep');
         }
         return wouldBankBeValid
-          ? 'Roll again or bank your points'
-          : `Keep rolling - need ${ENTRY_THRESHOLD}+ to get on board`;
+          ? t('rollOrBank')
+          : t('needThreshold', { threshold: ENTRY_THRESHOLD });
       case TurnPhase.DECIDING:
-        return 'Roll again to risk it, or bank to keep your points';
+        return t('riskOrBank');
       default:
         return '';
     }
@@ -412,7 +414,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
               gap: 'var(--space-2)',
             }}
           >
-            {currentPlayer.name}'s Turn
+            {t('turnOf', { name: currentPlayer.name })}
             {isAITurn && (
               <span
                 style={{
@@ -431,7 +433,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
           <button
             onClick={() => setShowHelp(true)}
             className="btn btn-ghost btn-sm"
-            aria-label="Show game rules"
+            aria-label={t('showRules')}
             style={{
               fontSize: 'var(--font-size-lg)',
               minWidth: 44,
@@ -492,10 +494,10 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
                   border: '1px solid var(--color-primary)',
                 }}
               >
-                Selected: <strong style={{ color: 'var(--color-primary)' }}>+{selectedScore}</strong>
+                {t('selected')} <strong style={{ color: 'var(--color-primary)' }}>+{selectedScore}</strong>
                 {turn.turnScore > 0 && (
                   <span style={{ marginLeft: 'var(--space-3)', color: 'var(--color-text-secondary)' }}>
-                    (Turn total: <strong>{turn.turnScore + selectedScore}</strong>)
+                    ({t('turnTotal')} <strong>{turn.turnScore + selectedScore}</strong>)
                   </span>
                 )}
               </motion.div>
@@ -531,7 +533,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
                 }}
                 role="alert"
               >
-                BUST!
+                {t('bust')}
               </motion.div>
             )}
           </AnimatePresence>

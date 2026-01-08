@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { PlayerState } from '../types/index.js';
 import { TARGET_SCORE } from '../engine/constants.js';
+import { useI18n } from '../i18n/index.js';
 
 interface PlayerListProps {
   players: PlayerState[];
@@ -18,6 +19,8 @@ interface PlayerListProps {
  * - Compact but readable on mobile
  */
 export function PlayerList({ players, currentPlayerIndex, isFinalRound }: PlayerListProps) {
+  const { t } = useI18n();
+
   // Sort players by score for ranking display
   const rankedPlayers = [...players]
     .map((player, index) => ({ ...player, originalIndex: index }))
@@ -53,7 +56,7 @@ export function PlayerList({ players, currentPlayerIndex, isFinalRound }: Player
             fontWeight: 'var(--font-weight-semibold)',
           }}
         >
-          Players
+          {t('players')}
         </h3>
         {isFinalRound && (
           <motion.span
@@ -69,7 +72,7 @@ export function PlayerList({ players, currentPlayerIndex, isFinalRound }: Player
               textTransform: 'uppercase',
             }}
           >
-            Final Round
+            {t('finalRound')}
           </motion.span>
         )}
       </header>
@@ -177,7 +180,7 @@ export function PlayerList({ players, currentPlayerIndex, isFinalRound }: Player
                           borderRadius: 'var(--radius-sm)',
                         }}
                       >
-                        Not on board
+                        {t('notOnBoard')}
                       </span>
                     )}
                     {isLeader && (
@@ -190,7 +193,7 @@ export function PlayerList({ players, currentPlayerIndex, isFinalRound }: Player
                           borderRadius: 'var(--radius-sm)',
                         }}
                       >
-                        Leader
+                        {t('leader')}
                       </span>
                     )}
                   </div>
