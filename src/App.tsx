@@ -4,7 +4,9 @@ import { StartScreen } from './ui/StartScreen.js';
 import type { PlayerConfig } from './ui/StartScreen.js';
 import { GameBoard } from './ui/GameBoard.js';
 import { GameOver } from './ui/GameOver.js';
+import { DebugFooter } from './ui/DebugFooter.js';
 import { createGameState } from './engine/game.js';
+import { gameLogger } from './debug/GameLogger.js';
 import type { GameState } from './types/index.js';
 
 type Screen = 'start' | 'game' | 'gameover';
@@ -14,6 +16,12 @@ export function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
 
   const handleStart = useCallback((players: PlayerConfig[]) => {
+    gameLogger.reset();
+    gameLogger.gameStart(players.map(p => ({
+      name: p.name,
+      isAI: p.isAI,
+      aiStrategy: p.aiStrategy,
+    })));
     const newGame = createGameState(players);
     setGameState(newGame);
     setScreen('game');
@@ -22,6 +30,11 @@ export function App() {
   const handleGameStateChange = useCallback((newState: GameState) => {
     setGameState(newState);
     if (newState.isGameOver) {
+      const winner = newState.players.reduce((a, b) => a.score > b.score ? a : b);
+      gameLogger.gameEnd(
+        winner.name,
+        newState.players.map(p => ({ name: p.name, score: p.score }))
+      );
       setTimeout(() => setScreen('gameover'), 500);
     }
   }, []);
@@ -118,17 +131,7 @@ export function App() {
         </AnimatePresence>
       </main>
 
-      <footer
-        style={{
-          padding: '16px 24px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          textAlign: 'center',
-          fontSize: 12,
-          opacity: 0.5,
-        }}
-      >
-        Greedy Dice Game - First to 10,000 wins!
-      </footer>
+      <DebugFooter />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { validateKeep } from '../engine/validation.js';
 import { scoreSelection } from '../engine/scoring.js';
 import { makeAIDecision, AI_STRATEGIES } from '../ai/strategies.js';
 import { ENTRY_THRESHOLD } from '../engine/constants.js';
+import { gameLogger } from '../debug/GameLogger.js';
 
 interface GameBoardProps {
   gameState: GameState;
@@ -155,6 +156,14 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
     // Log AI decision-making
     console.log(`🤖 AI ${player.name} (${strategyName}) considering action in phase: ${currentTurn.phase} → Decision: ${decision.action}${decision.dice ? ` [${decision.dice.join(', ')}]` : ''}`);
 
+    gameLogger.aiDecision(player.name, strategyName, currentTurn.phase, decision.action, {
+      diceToKeep: decision.dice?.join(', '),
+      currentRoll: currentTurn.currentRoll?.join(', '),
+      turnScore: currentTurn.turnScore,
+      diceRemaining: currentTurn.diceRemaining,
+      isOnBoard: player.isOnBoard,
+    });
+
     // Add delay for visual feedback
     const thinkDelay = currentTurn.phase === TurnPhase.ROLLING || currentTurn.phase === TurnPhase.STEAL_REQUIRED ? 800 : 600;
 
@@ -169,6 +178,7 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
         setTimeout(() => {
           const state = gameStateRef.current;
           const aiPlayer = getCurrentPlayer(state);
+          const turnScoreBefore = state.turn.turnScore;
           const dice = rollDice(state.turn.diceRemaining);
           const newState = gameReducer(state, { type: 'ROLL', dice });
 
@@ -176,10 +186,12 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
           logAIAction('ROLL', aiPlayer, {
             'Dice Count': state.turn.diceRemaining,
             'Roll Result': dice.join(', '),
-            'Turn Score Before': state.turn.turnScore,
+            'Turn Score Before': turnScoreBefore,
             'Phase': state.turn.phase,
             'Result': isBust ? '💥 BUST!' : '✓ Has scoring dice',
           });
+
+          gameLogger.roll(aiPlayer.name, true, dice.length, dice, isBust, turnScoreBefore);
 
           onGameStateChangeRef.current(newState);
           setIsRolling(false);
@@ -188,10 +200,12 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
           // If busted, auto-end turn after delay
           if (isBust) {
             logAIAction('BUST - Turn Ended', aiPlayer, {
-              'Points Lost': state.turn.turnScore,
+              'Points Lost': turnScoreBefore,
               'Final Score': aiPlayer.score,
             });
+            gameLogger.bust(aiPlayer.name, true, dice, turnScoreBefore);
             setTimeout(() => {
+              gameLogger.turnEnd(aiPlayer.name, true, 0, aiPlayer.score, aiPlayer.isOnBoard, aiPlayer.isOnBoard);
               onGameStateChangeRef.current(gameReducer(newState, { type: 'END_TURN' }));
             }, 1500);
           }
@@ -214,6 +228,8 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
           ...(isHotDice ? { '🔥 HOT DICE': 'All dice scored! Rolling 5 fresh dice' } : {}),
         });
 
+        gameLogger.keep(aiPlayer.name, true, decision.dice, keepScore, newState.turn.turnScore, newState.turn.diceRemaining, isHotDice);
+
         // Set delay before next action so user can see kept dice
         const keepDelay = isHotDice ? 1500 : 1000;
         aiNextActionTimeRef.current = Date.now() + keepDelay;
@@ -224,14 +240,22 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
         // AI banks
         const state = gameStateRef.current;
         const aiPlayer = getCurrentPlayer(state);
+        const createdCarryover = state.turn.diceRemaining > 0;
+        const newTotalScore = aiPlayer.score + state.turn.turnScore;
+        const wasOnBoard = aiPlayer.isOnBoard;
+        const isNowOnBoard = wasOnBoard || newTotalScore >= ENTRY_THRESHOLD;
+
         let newState = gameReducer(state, { type: 'BANK' });
 
         logAIAction('BANK', aiPlayer, {
           'Turn Score': state.turn.turnScore,
-          'New Total Score': aiPlayer.score + state.turn.turnScore,
+          'New Total Score': newTotalScore,
           'Dice Remaining': state.turn.diceRemaining,
-          'Carryover Created': state.turn.diceRemaining > 0 ? `Yes (${state.turn.diceRemaining} dice, ${state.turn.turnScore} points)` : 'No',
+          'Carryover Created': createdCarryover ? `Yes (${state.turn.diceRemaining} dice, ${state.turn.turnScore} points)` : 'No',
         });
+
+        gameLogger.bank(aiPlayer.name, true, state.turn.turnScore, newTotalScore, state.turn.diceRemaining, createdCarryover);
+        gameLogger.turnEnd(aiPlayer.name, true, state.turn.turnScore, newTotalScore, wasOnBoard, isNowOnBoard);
 
         newState = gameReducer(newState, { type: 'END_TURN' });
         onGameStateChangeRef.current(newState);
@@ -288,20 +312,31 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
       }
 
       // Keep the dice, then roll
+      const keepScore = scoreSelection(selectedDice).score;
       let newState = gameReducer(gameState, { type: 'KEEP', dice: selectedDice });
+      const isHotDice = newState.turn.diceRemaining === 5 && turn.diceRemaining !== 5;
+
+      gameLogger.keep(currentPlayer.name, false, selectedDice, keepScore, newState.turn.turnScore, newState.turn.diceRemaining, isHotDice);
 
       setIsRolling(true);
       setSelectedIndices([]);
 
       setTimeout(() => {
         const dice = rollDice(newState.turn.diceRemaining);
+        const turnScoreBefore = newState.turn.turnScore;
         newState = gameReducer(newState, { type: 'ROLL', dice });
+        const isBust = newState.turn.phase === TurnPhase.ENDED;
+
+        gameLogger.roll(currentPlayer.name, false, dice.length, dice, isBust, turnScoreBefore);
+
         onGameStateChange(newState);
         setIsRolling(false);
 
         // If busted, auto-end turn after a delay
-        if (newState.turn.phase === TurnPhase.ENDED) {
+        if (isBust) {
+          gameLogger.bust(currentPlayer.name, false, dice, turnScoreBefore);
           setTimeout(() => {
+            gameLogger.turnEnd(currentPlayer.name, false, 0, currentPlayer.score, currentPlayer.isOnBoard, currentPlayer.isOnBoard);
             onGameStateChange(gameReducer(newState, { type: 'END_TURN' }));
           }, 1500);
         }
@@ -313,28 +348,43 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
 
       setTimeout(() => {
         const dice = rollDice(turn.diceRemaining);
+        const turnScoreBefore = turn.turnScore;
         const newState = gameReducer(gameState, { type: 'ROLL', dice });
+        const isBust = newState.turn.phase === TurnPhase.ENDED;
+
+        gameLogger.roll(currentPlayer.name, false, dice.length, dice, isBust, turnScoreBefore);
+
         onGameStateChange(newState);
         setIsRolling(false);
 
         // If busted, auto-end turn after a delay
-        if (newState.turn.phase === TurnPhase.ENDED) {
+        if (isBust) {
+          gameLogger.bust(currentPlayer.name, false, dice, turnScoreBefore);
           setTimeout(() => {
+            gameLogger.turnEnd(currentPlayer.name, false, 0, currentPlayer.score, currentPlayer.isOnBoard, currentPlayer.isOnBoard);
             onGameStateChange(gameReducer(newState, { type: 'END_TURN' }));
           }, 1500);
         }
       }, 500);
     }
-  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange]);
+  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange, currentPlayer]);
 
   const handleBank = useCallback(() => {
     if (!canBankNow) return;
+
+    const createdCarryover = turn.diceRemaining > 0;
+    const newTotalScore = currentPlayer.score + turn.turnScore;
+    const wasOnBoard = currentPlayer.isOnBoard;
+    const isNowOnBoard = wasOnBoard || newTotalScore >= ENTRY_THRESHOLD;
+
+    gameLogger.bank(currentPlayer.name, false, turn.turnScore, newTotalScore, turn.diceRemaining, createdCarryover);
+    gameLogger.turnEnd(currentPlayer.name, false, turn.turnScore, newTotalScore, wasOnBoard, isNowOnBoard);
 
     let newState = gameReducer(gameState, { type: 'BANK' });
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [canBankNow, gameState, onGameStateChange]);
+  }, [canBankNow, gameState, onGameStateChange, turn.turnScore, turn.diceRemaining, currentPlayer]);
 
   const handleDeclineCarryover = useCallback(() => {
     if (turn.phase !== TurnPhase.STEAL_REQUIRED) return;
@@ -349,14 +399,29 @@ export function GameBoard({ gameState, onGameStateChange }: GameBoardProps) {
     if (selectedIndices.length === 0 || !turn.currentRoll) return;
 
     const selectedDice = selectedIndices.map((i) => turn.currentRoll![i]);
+    const keepScore = scoreSelection(selectedDice).score;
 
     // Keep the dice, then bank and end turn
     let newState = gameReducer(gameState, { type: 'KEEP', dice: selectedDice });
+    const turnScoreAfterKeep = newState.turn.turnScore;
+    const diceRemainingAfterKeep = newState.turn.diceRemaining;
+    const isHotDice = diceRemainingAfterKeep === 5 && turn.diceRemaining !== 5;
+
+    gameLogger.keep(currentPlayer.name, false, selectedDice, keepScore, turnScoreAfterKeep, diceRemainingAfterKeep, isHotDice);
+
+    const createdCarryover = diceRemainingAfterKeep > 0;
+    const newTotalScore = currentPlayer.score + turnScoreAfterKeep;
+    const wasOnBoard = currentPlayer.isOnBoard;
+    const isNowOnBoard = wasOnBoard || newTotalScore >= ENTRY_THRESHOLD;
+
+    gameLogger.bank(currentPlayer.name, false, turnScoreAfterKeep, newTotalScore, diceRemainingAfterKeep, createdCarryover);
+    gameLogger.turnEnd(currentPlayer.name, false, turnScoreAfterKeep, newTotalScore, wasOnBoard, isNowOnBoard);
+
     newState = gameReducer(newState, { type: 'BANK' });
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [selectedIndices, turn.currentRoll, gameState, onGameStateChange]);
+  }, [selectedIndices, turn.currentRoll, turn.diceRemaining, gameState, onGameStateChange, currentPlayer]);
 
   const selectedDice = turn.currentRoll
     ? selectedIndices.map((i) => turn.currentRoll![i])
