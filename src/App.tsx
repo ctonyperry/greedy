@@ -27,7 +27,6 @@ export function App() {
   const { t } = useI18n();
   const [screen, setScreen] = useState<Screen>('start');
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [showHints, setShowHints] = useState(false);
 
   const handleStart = useCallback((players: PlayerConfig[]) => {
     gameLogger.reset();
@@ -97,19 +96,6 @@ export function App() {
           {/* Language switcher */}
           <LanguageSwitcher />
 
-          {/* Hint toggle (during game) */}
-          {screen === 'game' && (
-            <button
-              onClick={() => setShowHints(!showHints)}
-              className={`btn ${showHints ? 'btn-warning' : 'btn-ghost'} btn-sm`}
-              aria-pressed={showHints}
-              title={showHints ? t('hintsOn') : t('hints')}
-              style={{ minHeight: 44, minWidth: 44 }}
-            >
-              {showHints ? t('hintsOn') : t('hints')}
-            </button>
-          )}
-
           {/* New Game button */}
           {screen !== 'start' && (
             <button
@@ -148,7 +134,7 @@ export function App() {
               <GameBoard
                 gameState={gameState}
                 onGameStateChange={handleGameStateChange}
-                showHints={showHints}
+                showHints
               />
             </motion.div>
           )}
