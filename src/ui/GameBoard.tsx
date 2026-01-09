@@ -48,6 +48,16 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
   const prevTurnRef = useRef<{ playerIndex: number; keptDice: Dice; turnScore: number; playerScore: number } | null>(null);
   const prevPlayerIndexRef = useRef<number>(gameState.currentPlayerIndex);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll header out of view when game starts
+  useEffect(() => {
+    // Small delay to let the DOM render
+    const timer = setTimeout(() => {
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []); // Only on mount
 
   const currentPlayer = getCurrentPlayer(gameState);
   const { turn } = gameState;
@@ -410,6 +420,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
   return (
     <div
+      ref={containerRef}
       className="game-board-container"
       style={{
         display: 'flex',

@@ -21,19 +21,14 @@ export function DebugFooter() {
   return (
     <div
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
         padding: '8px 16px',
         background: 'rgba(0, 0, 0, 0.3)',
-        backdropFilter: 'blur(8px)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         fontSize: 11,
         color: 'rgba(255, 255, 255, 0.4)',
-        zIndex: 1000,
+        marginTop: 'auto',
       }}
     >
       <span>Greedy Dice Game v1.0</span>
