@@ -433,9 +433,19 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
 
   const wouldBankBeValid = (() => {
     if (selectionScore === 0) return false;
-    const totalAfterKeep = turn.turnScore + selectionScore;
     if (currentPlayer.isOnBoard) return true;
-    const ownScore = totalAfterKeep - turn.carryoverPoints;
+
+    // Calculate own score (excluding carryover points) for entry threshold check
+    let ownScore: number;
+    if (turn.hasCarryover && !turn.carryoverClaimed) {
+      // Carryover hasn't been claimed yet, so it's not in turnScore
+      // Own score is just what we'll score from the selected dice
+      ownScore = selectionScore;
+    } else {
+      // Carryover already claimed and added to turnScore, or no carryover
+      ownScore = turn.turnScore + selectionScore - turn.carryoverPoints;
+    }
+
     return ownScore >= ENTRY_THRESHOLD;
   })();
 
