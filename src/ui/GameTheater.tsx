@@ -85,6 +85,11 @@ export function GameTheater({
   // Only true in DECIDING phase when you have 5 fresh dice to roll
   const isHotDice = diceRemaining === 5 && keptDice.length > 0 && turnPhase === TurnPhase.DECIDING;
 
+  // Calculate entry progress for players not on board (needed for instruction)
+  const ownScore = turnScore - carryoverPoints;
+  const entryProgress = !isOnBoard ? Math.min(100, (ownScore / ENTRY_THRESHOLD) * 100) : 100;
+  const needsEntryPoints = !isOnBoard && ownScore < ENTRY_THRESHOLD;
+
   // Get phase-specific instruction (HERO element)
   const getInstruction = (): { text: string; emphasis: 'normal' | 'action' | 'celebration' | 'warning' } => {
     if (isAI) {
@@ -133,11 +138,6 @@ export function GameTheater({
   };
 
   const instruction = getInstruction();
-
-  // Calculate entry progress for players not on board
-  const ownScore = turnScore - carryoverPoints;
-  const entryProgress = !isOnBoard ? Math.min(100, (ownScore / ENTRY_THRESHOLD) * 100) : 100;
-  const needsEntryPoints = !isOnBoard && ownScore < ENTRY_THRESHOLD;
 
   // Get roll button text - compact version
   const getRollButtonContent = () => {
