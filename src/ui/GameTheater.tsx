@@ -104,7 +104,13 @@ export function GameTheater({
       case TurnPhase.ROLLING:
         return { text: t('rollToStart'), emphasis: 'action' };
       case TurnPhase.STEAL_REQUIRED:
-        return { text: t('stealAttempt'), emphasis: 'action' };
+        // Dynamic risk messaging based on dice count
+        if (diceRemaining === 1) {
+          return { text: t('luckyBreakLow', { count: 1 }), emphasis: 'warning' };
+        } else if (diceRemaining === 2) {
+          return { text: t('luckyBreakMed'), emphasis: 'action' };
+        }
+        return { text: t('luckyBreakHigh'), emphasis: 'celebration' };
       case TurnPhase.KEEPING:
         if (selectedIndices.length === 0) {
           return { text: t('tapToKeep'), emphasis: 'action' };

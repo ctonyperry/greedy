@@ -195,11 +195,11 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
             </p>
           </section>
 
-          {/* Carryover */}
+          {/* Lucky Break (Carryover) */}
           <section>
-            <h3 style={sectionTitleStyle}>{t('helpStealing')}</h3>
+            <h3 style={sectionTitleStyle}>{t('helpLuckyBreak')}</h3>
             <p style={paragraphStyle}>
-              {t('helpStealingText')}
+              {t('helpLuckyBreakText')}
             </p>
           </section>
 
