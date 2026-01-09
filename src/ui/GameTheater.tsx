@@ -81,8 +81,9 @@ export function GameTheater({
 }: GameTheaterProps) {
   const { t } = useI18n();
 
-  // Detect Hot Dice state (all 5 dice available after keeping)
-  const isHotDice = diceRemaining === 5 && keptDice.length > 0;
+  // Detect Hot Dice state (all 5 dice available after keeping, but haven't rolled yet)
+  // Only true in DECIDING phase when you have 5 fresh dice to roll
+  const isHotDice = diceRemaining === 5 && keptDice.length > 0 && turnPhase === TurnPhase.DECIDING;
 
   // Get phase-specific instruction (HERO element)
   const getInstruction = (): { text: string; emphasis: 'normal' | 'action' | 'celebration' | 'warning' } => {
