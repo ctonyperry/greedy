@@ -414,8 +414,8 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--space-4)',
-        padding: 'var(--space-4)',
+        gap: 'var(--space-2)',
+        padding: 'var(--space-2)',
         maxWidth: 'var(--max-content-width)',
         margin: '0 auto',
         width: '100%',

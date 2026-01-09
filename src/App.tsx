@@ -69,18 +69,19 @@ export function App() {
       {/* Header */}
       <header
         style={{
-          padding: 'var(--space-3) var(--space-4)',
+          padding: 'var(--space-2) var(--space-3)',
           borderBottom: '1px solid var(--color-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           background: 'rgba(0, 0, 0, 0.2)',
+          minHeight: 'var(--header-height)',
         }}
       >
         <h1
           style={{
             margin: 0,
-            fontSize: 'var(--font-size-xl)',
+            fontSize: 'var(--font-size-lg)',
             fontWeight: 'var(--font-weight-bold)',
             background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
             WebkitBackgroundClip: 'text',

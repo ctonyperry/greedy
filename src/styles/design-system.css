@@ -124,9 +124,9 @@
   --z-toast: 500;
 
   /* Component-specific */
-  --die-size: 3.5rem;           /* 56px on mobile */
+  --die-size: 2.75rem;          /* 44px on small mobile */
   --die-size-lg: 4rem;          /* 64px on tablet+ */
-  --header-height: 4rem;        /* 64px */
+  --header-height: 3.5rem;      /* 56px */
   --sidebar-width: 320px;
   --max-content-width: 1200px;
 }
@@ -134,6 +134,14 @@
 /* ============================================
    Responsive Breakpoint Adjustments
    ============================================ */
+
+/* Taller phones / landscape */
+@media (min-height: 700px) {
+  :root {
+    --die-size: 3.25rem;        /* 52px on taller screens */
+    --header-height: 4rem;
+  }
+}
 
 /* Tablet and up */
 @media (min-width: 600px) {

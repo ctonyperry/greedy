@@ -129,7 +129,6 @@ export function GameTheater({
   const ownScore = turnScore - carryoverPoints;
   const entryProgress = !isOnBoard ? Math.min(100, (ownScore / ENTRY_THRESHOLD) * 100) : 100;
   const needsEntryPoints = !isOnBoard && ownScore < ENTRY_THRESHOLD;
-  const pointsToEntry = ENTRY_THRESHOLD - ownScore;
 
   // Get roll button text with fire emoji for Hot Dice
   const getRollButtonContent = () => {
@@ -186,7 +185,7 @@ export function GameTheater({
       {/* Hero Instruction */}
       <header
         style={{
-          padding: 'var(--space-4) var(--space-5)',
+          padding: 'var(--space-2) var(--space-3)',
           background: instruction.emphasis === 'celebration'
             ? 'linear-gradient(135deg, #f59e0b, #ef4444)'
             : instruction.emphasis === 'warning'
@@ -252,7 +251,7 @@ export function GameTheater({
             animate={{ opacity: 1, y: 0 }}
             style={{
               margin: 0,
-              fontSize: instruction.emphasis === 'celebration' ? 'var(--font-size-2xl)' : 'var(--font-size-xl)',
+              fontSize: instruction.emphasis === 'celebration' ? 'var(--font-size-lg)' : 'var(--font-size-base)',
               fontWeight: 'var(--font-weight-bold)',
               color: instruction.emphasis !== 'normal' ? 'white' : 'var(--color-text-secondary)',
               textTransform: instruction.emphasis === 'celebration' ? 'uppercase' : 'none',
@@ -266,17 +265,17 @@ export function GameTheater({
       </header>
 
       {/* Dice Area */}
-      <div style={{ padding: 'var(--space-4) var(--space-5)', flex: 1 }}>
+      <div style={{ padding: 'var(--space-2) var(--space-3)', flex: 1 }}>
         {/* Available Dice */}
         <div
           style={{
             display: 'flex',
-            gap: 'var(--space-3)',
+            gap: 'var(--space-2)',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            minHeight: 'calc(var(--die-size) + var(--space-4))',
+            minHeight: 'calc(var(--die-size) + var(--space-2))',
             alignItems: 'center',
-            marginBottom: 'var(--space-4)',
+            marginBottom: 'var(--space-2)',
           }}
         >
           <AnimatePresence mode="popLayout">
@@ -416,10 +415,10 @@ export function GameTheater({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             style={{
-              marginBottom: 'var(--space-4)',
-              padding: 'var(--space-3)',
+              marginBottom: 'var(--space-2)',
+              padding: 'var(--space-2)',
               background: entryProgress >= 100 ? 'var(--color-primary-light)' : 'var(--color-warning-light)',
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-md)',
               border: `1px solid ${entryProgress >= 100 ? 'var(--color-primary)' : 'var(--color-warning)'}`,
             }}
           >
@@ -427,17 +426,17 @@ export function GameTheater({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 'var(--space-2)',
+              marginBottom: 'var(--space-1)',
             }}>
               <span style={{
-                fontSize: 'var(--font-size-sm)',
+                fontSize: 'var(--font-size-xs)',
                 color: entryProgress >= 100 ? 'var(--color-primary)' : 'var(--color-warning)',
                 fontWeight: 'var(--font-weight-semibold)',
               }}>
-                {t('entryProgress')}
+                {entryProgress >= 100 ? t('readyToBoard') : t('entryProgress')}
               </span>
               <span style={{
-                fontSize: 'var(--font-size-sm)',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 'var(--font-weight-bold)',
               }}>
                 {ownScore} / {ENTRY_THRESHOLD}
@@ -445,7 +444,7 @@ export function GameTheater({
             </div>
             <div
               style={{
-                height: 8,
+                height: 4,
                 background: 'rgba(0,0,0,0.1)',
                 borderRadius: 'var(--radius-full)',
                 overflow: 'hidden',
@@ -461,24 +460,6 @@ export function GameTheater({
                 }}
               />
             </div>
-            {entryProgress < 100 ? (
-              <p style={{
-                margin: 'var(--space-2) 0 0',
-                fontSize: 'var(--font-size-sm)',
-                color: 'var(--color-warning)',
-              }}>
-                {t('needMoreToBoard', { points: pointsToEntry })}
-              </p>
-            ) : (
-              <p style={{
-                margin: 'var(--space-2) 0 0',
-                fontSize: 'var(--font-size-sm)',
-                color: 'var(--color-primary)',
-                fontWeight: 'var(--font-weight-semibold)',
-              }}>
-                {t('readyToBoard')}
-              </p>
-            )}
           </motion.div>
         )}
       </div>
@@ -487,15 +468,15 @@ export function GameTheater({
       {!isAI && turnPhase !== TurnPhase.ENDED && (
         <footer
           style={{
-            padding: 'var(--space-4) var(--space-5)',
+            padding: 'var(--space-2) var(--space-3)',
             borderTop: '1px solid var(--color-border)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 'var(--space-3)',
+            gap: 'var(--space-2)',
           }}
         >
           {/* Primary action row */}
-          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
             {/* Roll button */}
             {canRoll && (
               <motion.button
