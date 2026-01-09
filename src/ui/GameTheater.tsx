@@ -139,39 +139,26 @@ export function GameTheater({
   const entryProgress = !isOnBoard ? Math.min(100, (ownScore / ENTRY_THRESHOLD) * 100) : 100;
   const needsEntryPoints = !isOnBoard && ownScore < ENTRY_THRESHOLD;
 
-  // Get roll button text with fire emoji for Hot Dice
+  // Get roll button text - compact version
   const getRollButtonContent = () => {
     if (isRolling) return t('rolling');
 
-    if (isHotDice) {
-      return (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <span>🔥</span>
-          <span>{t('hotDice')}</span>
-          <span>🔥</span>
-        </span>
-      );
+    // Hot dice - keeping all dice triggers fresh 5
+    if (isHotDice || (selectedIndices.length > 0 && diceRemaining - selectedIndices.length === 0)) {
+      return '🔥 Hot Dice';
     }
 
+    // Show dice count for roll
     if (selectedIndices.length > 0) {
       const remaining = diceRemaining - selectedIndices.length;
-      if (remaining === 0) {
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <span>🔥</span>
-            <span>{t('hotDice')}</span>
-            <span>🔥</span>
-          </span>
-        );
-      }
-      return t('keepAndRoll', { count: remaining });
+      return `🎲 Roll ${remaining}`;
     }
 
     if (!currentRoll || currentRoll.length === 0) {
-      return t('rollDice');
+      return `🎲 Roll ${diceRemaining}`;
     }
 
-    return t('roll', { count: diceRemaining });
+    return `🎲 Roll ${diceRemaining}`;
   };
 
   // Determine if roll button should show fire styling
@@ -484,8 +471,8 @@ export function GameTheater({
             gap: 'var(--space-2)',
           }}
         >
-          {/* Primary action row */}
-          <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center' }}>
+          {/* Primary action row - compact single line */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             {/* Roll button */}
             {canRoll && (
               <motion.button
@@ -493,10 +480,11 @@ export function GameTheater({
                 disabled={isRolling}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`btn btn-lg ${showFireButton ? 'btn-fire' : 'btn-primary'}`}
+                className={`btn ${showFireButton ? 'btn-fire' : 'btn-primary'}`}
                 style={{
                   flex: 1,
-                  maxWidth: 280,
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontSize: 'var(--font-size-base)',
                   background: showFireButton
                     ? 'linear-gradient(135deg, #f59e0b, #ef4444)'
                     : undefined,
@@ -512,13 +500,14 @@ export function GameTheater({
                 onClick={canKeepAndBank ? onKeepAndBank : onBank}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="btn btn-warning btn-lg"
+                className="btn btn-warning"
                 style={{
                   flex: 1,
-                  maxWidth: 280,
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontSize: 'var(--font-size-base)',
                 }}
               >
-                💰 {t('bank')} {turnScore + selectionScore > 0 ? `(${(turnScore + selectionScore).toLocaleString()})` : ''}
+                💰 {turnScore + selectionScore > 0 ? (turnScore + selectionScore).toLocaleString() : t('bank')}
               </motion.button>
             )}
           </div>
@@ -529,7 +518,7 @@ export function GameTheater({
               onClick={onDeclineCarryover}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="btn btn-ghost"
+              className="btn btn-ghost btn-sm"
               style={{ alignSelf: 'center' }}
             >
               {t('declineStartFresh')}

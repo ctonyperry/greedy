@@ -96,6 +96,11 @@ export function getWinner(state: GameState): PlayerState | null {
  */
 function advancePlayer(state: GameState): GameState {
   const nextIndex = (state.currentPlayerIndex + 1) % state.players.length;
+  const nextPlayer = state.players[nextIndex];
+
+  // Players not on the board can't take Lucky Break - they must earn entry the regular way
+  // Only give carryover to players who are already on the board
+  const canTakeCarryover = nextPlayer.isOnBoard && state.carryoverPot !== null;
 
   // Check if game is over (completed a round in final phase)
   if (state.isFinalRound && nextIndex === state.scoreToBeatPlayerIndex) {
@@ -111,28 +116,29 @@ function advancePlayer(state: GameState): GameState {
     }
 
     // Someone beat the score - reset flag and continue
-    // (The new score-to-beat was already set in END_TURN)
-    const newTurn = state.carryoverPot
-      ? createTurnState(state.carryoverPot)
+    const newTurn = canTakeCarryover
+      ? createTurnState(state.carryoverPot!)
       : createTurnState();
 
     return {
       ...state,
       currentPlayerIndex: nextIndex,
       turn: newTurn,
+      carryoverPot: canTakeCarryover ? state.carryoverPot : null,
       highScoreBeatenThisRound: false,
     };
   }
 
   // Create new turn for next player
-  const newTurn = state.carryoverPot
-    ? createTurnState(state.carryoverPot)
+  const newTurn = canTakeCarryover
+    ? createTurnState(state.carryoverPot!)
     : createTurnState();
 
   return {
     ...state,
     currentPlayerIndex: nextIndex,
     turn: newTurn,
+    carryoverPot: canTakeCarryover ? state.carryoverPot : null,
   };
 }
 
