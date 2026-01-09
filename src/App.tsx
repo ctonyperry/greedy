@@ -5,7 +5,6 @@ import type { PlayerConfig } from './ui/StartScreen.js';
 import { GameBoard } from './ui/GameBoard.js';
 import { GameOver } from './ui/GameOver.js';
 import { DebugFooter } from './ui/DebugFooter.js';
-import { LanguageSwitcher } from './ui/LanguageSwitcher.js';
 import { createGameState } from './engine/game.js';
 import { gameLogger } from './debug/GameLogger.js';
 import { useI18n } from './i18n/index.js';
@@ -92,21 +91,15 @@ export function App() {
         </h1>
 
         {/* Header actions */}
-        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-          {/* Language switcher */}
-          <LanguageSwitcher />
-
-          {/* New Game button */}
-          {screen !== 'start' && (
-            <button
-              onClick={handleNewGame}
-              className="btn btn-ghost btn-sm"
-              style={{ minHeight: 44 }}
-            >
-              {t('newGame')}
-            </button>
-          )}
-        </div>
+        {screen !== 'start' && (
+          <button
+            onClick={handleNewGame}
+            className="btn btn-ghost btn-sm"
+            style={{ minHeight: 44 }}
+          >
+            {t('newGame')}
+          </button>
+        )}
       </header>
 
       {/* Main content */}
