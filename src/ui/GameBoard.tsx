@@ -50,11 +50,22 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   const prevPlayerIndexRef = useRef<number>(gameState.currentPlayerIndex);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Helper to scroll header out of view on user interaction
+  const scrollHeaderOut = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      // Only scroll if header is visible (container is not at top of viewport)
+      if (rect.top > 10) {
+        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, []);
+
   // Auto-scroll header out of view when game starts
   useEffect(() => {
     // Small delay to let the DOM render
     const timer = setTimeout(() => {
-      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollHeaderOut();
     }, 100);
     return () => clearTimeout(timer);
   }, []); // Only on mount
@@ -281,6 +292,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     if (isAITurn || isRolling) return;
     if (!selectableIndices.has(index)) return;
 
+    scrollHeaderOut();
     setSelectedIndices(prev => {
       if (prev.includes(index)) {
         return prev.filter(i => i !== index);
@@ -288,10 +300,12 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         return [...prev, index];
       }
     });
-  }, [isAITurn, isRolling, selectableIndices]);
+  }, [isAITurn, isRolling, selectableIndices, scrollHeaderOut]);
 
   const handleRoll = useCallback(() => {
     if (!canRoll) return;
+
+    scrollHeaderOut();
 
     if (selectedIndices.length > 0 && turn.currentRoll) {
       const selectedDice = selectedIndices.map((i) => turn.currentRoll![i]);
@@ -352,10 +366,12 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         }
       }, 500);
     }
-  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange, currentPlayer, turn.turnScore]);
+  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange, currentPlayer, turn.turnScore, scrollHeaderOut]);
 
   const handleBank = useCallback(() => {
     if (!canBankNow) return;
+
+    scrollHeaderOut();
 
     const createdCarryover = turn.diceRemaining > 0;
     const newTotalScore = currentPlayer.score + turn.turnScore;
@@ -369,17 +385,22 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [canBankNow, gameState, onGameStateChange, turn.turnScore, turn.diceRemaining, currentPlayer]);
+  }, [canBankNow, gameState, onGameStateChange, turn.turnScore, turn.diceRemaining, currentPlayer, scrollHeaderOut]);
 
   const handleDeclineCarryover = useCallback(() => {
     if (turn.phase !== TurnPhase.STEAL_REQUIRED) return;
+
+    scrollHeaderOut();
+
     const newState = gameReducer(gameState, { type: 'DECLINE_CARRYOVER' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [turn.phase, gameState, onGameStateChange]);
+  }, [turn.phase, gameState, onGameStateChange, scrollHeaderOut]);
 
   const handleKeepAndBank = useCallback(() => {
     if (selectedIndices.length === 0 || !turn.currentRoll) return;
+
+    scrollHeaderOut();
 
     const selectedDice = selectedIndices.map((i) => turn.currentRoll![i]);
     const keepScore = scoreSelection(selectedDice).score;
@@ -403,7 +424,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [selectedIndices, turn.currentRoll, turn.diceRemaining, gameState, onGameStateChange, currentPlayer]);
+  }, [selectedIndices, turn.currentRoll, turn.diceRemaining, gameState, onGameStateChange, currentPlayer, scrollHeaderOut]);
 
   const selectedDice = turn.currentRoll
     ? selectedIndices.map((i) => turn.currentRoll![i])
