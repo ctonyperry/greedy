@@ -67,7 +67,8 @@ export function PlayerBar({ players, currentPlayerIndex, isFinalRound }: PlayerB
           gap: 'var(--space-2)',
           overflowX: 'auto',
           scrollSnapType: 'x mandatory',
-          paddingBottom: 'var(--space-1)',
+          padding: 'var(--space-1)',
+          margin: 'calc(-1 * var(--space-1))',
           WebkitOverflowScrolling: 'touch',
         }}
       >

@@ -352,15 +352,16 @@ export function GameTheater({
                 }}
               >
                 {/* Kept/Selected Dice */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
                   <span style={{
                     fontSize: 'var(--font-size-sm)',
                     color: 'var(--color-primary)',
                     fontWeight: 'var(--font-weight-semibold)',
+                    flexShrink: 0,
                   }}>
                     {t('keeping')}:
                   </span>
-                  <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+                  <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
                     {/* Show currently selected dice */}
                     {currentRoll && selectedIndices.map((index) => (
                       <motion.div
