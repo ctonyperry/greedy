@@ -49,26 +49,26 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   const prevTurnRef = useRef<{ playerIndex: number; keptDice: Dice; turnScore: number; playerScore: number } | null>(null);
   const prevPlayerIndexRef = useRef<number>(gameState.currentPlayerIndex);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasScrolledRef = useRef(false);
 
-  // Helper to scroll header out of view on user interaction
-  const scrollHeaderOut = useCallback(() => {
+  // Helper to scroll theater to top of viewport
+  const scrollToTheater = useCallback(() => {
     if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      // Only scroll if header is visible (container is not at top of viewport)
-      if (rect.top > 10) {
-        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, []);
 
-  // Auto-scroll header out of view when game starts
+  // Auto-scroll to theater when game starts
   useEffect(() => {
-    // Small delay to let the DOM render
-    const timer = setTimeout(() => {
-      scrollHeaderOut();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []); // Only on mount
+    if (!hasScrolledRef.current) {
+      // Small delay to let the DOM render
+      const timer = setTimeout(() => {
+        scrollToTheater();
+        hasScrolledRef.current = true;
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [scrollToTheater]);
 
   const currentPlayer = getCurrentPlayer(gameState);
   const { turn } = gameState;
@@ -292,7 +292,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     if (isAITurn || isRolling) return;
     if (!selectableIndices.has(index)) return;
 
-    scrollHeaderOut();
+    scrollToTheater();
     setSelectedIndices(prev => {
       if (prev.includes(index)) {
         return prev.filter(i => i !== index);
@@ -300,12 +300,12 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         return [...prev, index];
       }
     });
-  }, [isAITurn, isRolling, selectableIndices, scrollHeaderOut]);
+  }, [isAITurn, isRolling, selectableIndices, scrollToTheater]);
 
   const handleRoll = useCallback(() => {
     if (!canRoll) return;
 
-    scrollHeaderOut();
+    scrollToTheater();
 
     if (selectedIndices.length > 0 && turn.currentRoll) {
       const selectedDice = selectedIndices.map((i) => turn.currentRoll![i]);
@@ -366,12 +366,12 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         }
       }, 500);
     }
-  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange, currentPlayer, turn.turnScore, scrollHeaderOut]);
+  }, [canRoll, turn.currentRoll, turn.diceRemaining, selectedIndices, gameState, onGameStateChange, currentPlayer, turn.turnScore, scrollToTheater]);
 
   const handleBank = useCallback(() => {
     if (!canBankNow) return;
 
-    scrollHeaderOut();
+    scrollToTheater();
 
     const createdCarryover = turn.diceRemaining > 0;
     const newTotalScore = currentPlayer.score + turn.turnScore;
@@ -385,22 +385,22 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [canBankNow, gameState, onGameStateChange, turn.turnScore, turn.diceRemaining, currentPlayer, scrollHeaderOut]);
+  }, [canBankNow, gameState, onGameStateChange, turn.turnScore, turn.diceRemaining, currentPlayer, scrollToTheater]);
 
   const handleDeclineCarryover = useCallback(() => {
     if (turn.phase !== TurnPhase.STEAL_REQUIRED) return;
 
-    scrollHeaderOut();
+    scrollToTheater();
 
     const newState = gameReducer(gameState, { type: 'DECLINE_CARRYOVER' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [turn.phase, gameState, onGameStateChange, scrollHeaderOut]);
+  }, [turn.phase, gameState, onGameStateChange, scrollToTheater]);
 
   const handleKeepAndBank = useCallback(() => {
     if (selectedIndices.length === 0 || !turn.currentRoll) return;
 
-    scrollHeaderOut();
+    scrollToTheater();
 
     const selectedDice = selectedIndices.map((i) => turn.currentRoll![i]);
     const keepScore = scoreSelection(selectedDice).score;
@@ -424,7 +424,7 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
     newState = gameReducer(newState, { type: 'END_TURN' });
     onGameStateChange(newState);
     setSelectedIndices([]);
-  }, [selectedIndices, turn.currentRoll, turn.diceRemaining, gameState, onGameStateChange, currentPlayer, scrollHeaderOut]);
+  }, [selectedIndices, turn.currentRoll, turn.diceRemaining, gameState, onGameStateChange, currentPlayer, scrollToTheater]);
 
   const selectedDice = turn.currentRoll
     ? selectedIndices.map((i) => turn.currentRoll![i])
