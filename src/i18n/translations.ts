@@ -51,6 +51,7 @@ export const translations = {
     tapToKeep: 'Tap the scoring dice you want to keep',
     rollOrBank: 'Roll again or bank your points',
     needThreshold: 'Keep rolling - need {threshold}+ to get on board',
+    keepRollingForEntry: 'Keep rolling to reach entry threshold',
     riskOrBank: 'Roll again to risk it, or bank to keep your points',
     showRules: 'Show game rules',
 
@@ -197,6 +198,7 @@ export const translations = {
     tapToKeep: 'Toque nos dados que pontuam para guardá-los',
     rollOrBank: 'Role novamente ou guarde seus pontos',
     needThreshold: 'Continue rolando - precisa de {threshold}+ para entrar no jogo',
+    keepRollingForEntry: 'Continue rolando para atingir o limite de entrada',
     riskOrBank: 'Role novamente para arriscar, ou guarde seus pontos',
     showRules: 'Mostrar regras do jogo',
 

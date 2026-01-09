@@ -116,8 +116,16 @@ export function GameTheater({
         if (selectedIndices.length === 0) {
           return { text: t('tapToKeep'), emphasis: 'action' };
         }
+        // Show different message if player can't bank due to entry threshold
+        if (needsEntryPoints) {
+          return { text: t('keepRollingForEntry'), emphasis: 'warning' };
+        }
         return { text: t('rollOrBank'), emphasis: 'normal' };
       case TurnPhase.DECIDING:
+        // Show different message if player can't bank due to entry threshold
+        if (needsEntryPoints) {
+          return { text: t('keepRollingForEntry'), emphasis: 'warning' };
+        }
         return { text: t('riskOrBank'), emphasis: 'action' };
       default:
         return { text: '', emphasis: 'normal' };
