@@ -5,6 +5,7 @@ import type { PlayerConfig } from './ui/StartScreen.js';
 import { GameBoard } from './ui/GameBoard.js';
 import { GameOver } from './ui/GameOver.js';
 import { DebugFooter } from './ui/DebugFooter.js';
+import { HelpPanel } from './ui/HelpPanel.js';
 import { createGameState } from './engine/game.js';
 import { gameLogger } from './debug/GameLogger.js';
 import { useI18n } from './i18n/index.js';
@@ -26,6 +27,7 @@ export function App() {
   const { t } = useI18n();
   const [screen, setScreen] = useState<Screen>('start');
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleStart = useCallback((players: PlayerConfig[]) => {
     gameLogger.reset();
@@ -91,15 +93,24 @@ export function App() {
         </h1>
 
         {/* Header actions */}
-        {screen !== 'start' && (
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button
-            onClick={handleNewGame}
+            onClick={() => setShowHelp(true)}
             className="btn btn-ghost btn-sm"
             style={{ minHeight: 44 }}
           >
-            {t('newGame')}
+            {t('howToPlay')}
           </button>
-        )}
+          {screen !== 'start' && (
+            <button
+              onClick={handleNewGame}
+              className="btn btn-ghost btn-sm"
+              style={{ minHeight: 44 }}
+            >
+              {t('newGame')}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Main content */}
@@ -146,6 +157,11 @@ export function App() {
       </main>
 
       <DebugFooter />
+
+      {/* Help panel */}
+      <AnimatePresence>
+        {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

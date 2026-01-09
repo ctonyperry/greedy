@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GameTheater } from './GameTheater.js';
 import { PlayerBar } from './PlayerBar.js';
 import { TurnHistory, TurnHistoryEntry } from './DiceRoll.js';
-import { HelpPanel } from './HelpPanel.js';
 import { TurnPhase } from '../types/index.js';
 import type { GameState, Dice, DieValue } from '../types/index.js';
 import { gameReducer, getCurrentPlayer } from '../engine/game.js';
@@ -44,7 +43,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
   const [turnHistory, setTurnHistory] = useState<TurnHistoryEntry[]>([]);
   const [aiTrigger, setAiTrigger] = useState(0);
   const [currentTurnRolls, setCurrentTurnRolls] = useState<Dice[]>([]);
-  const [showHelp, setShowHelp] = useState(false);
 
   const prevTurnRef = useRef<{ playerIndex: number; keptDice: Dice; turnScore: number; playerScore: number } | null>(null);
   const prevPlayerIndexRef = useRef<number>(gameState.currentPlayerIndex);
@@ -464,26 +462,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
         minHeight: '100%',
       }}
     >
-      {/* Help button - floating */}
-      <button
-        onClick={() => setShowHelp(true)}
-        className="btn btn-ghost btn-sm"
-        aria-label={t('showRules')}
-        style={{
-          position: 'fixed',
-          top: 'calc(var(--header-height) + var(--space-2))',
-          right: 'var(--space-4)',
-          fontSize: 'var(--font-size-lg)',
-          minWidth: 44,
-          minHeight: 44,
-          zIndex: 'var(--z-raised)',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        ?
-      </button>
-
       {/* Main content grid */}
       <div
         className="game-layout"
@@ -582,11 +560,6 @@ export function GameBoard({ gameState, onGameStateChange, showHints = false }: G
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Help panel */}
-      <AnimatePresence>
-        {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
       </AnimatePresence>
 
       {/* Responsive styles */}
