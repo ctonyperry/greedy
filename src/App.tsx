@@ -97,9 +97,10 @@ export function App() {
           <button
             onClick={() => setShowHelp(true)}
             className="btn btn-ghost btn-sm"
-            style={{ minHeight: 44 }}
+            style={{ minHeight: 44, fontSize: 'var(--font-size-lg)' }}
+            aria-label={t('howToPlay')}
           >
-            {t('howToPlay')}
+            ?
           </button>
           {screen !== 'start' && (
             <button
